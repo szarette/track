@@ -1,0 +1,1954 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000000">
+<title>Matt Calendar</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Hanken+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+:root{
+  --paper:#FFFFFF; --ink:#000000; --stone:#F3F3F1; --graphite:#6B6B6B; --hair:#E4E4E1;
+  --dial:#1E2B45;
+  --sans:"Hanken Grotesk","Helvetica Neue",Helvetica,Arial,sans-serif;
+  --serif:"Cormorant Garamond",Cormorant,Garamond,"Times New Roman",serif;
+  --hero-h:clamp(280px,40vh,480px);
+  --ov:.4;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){--paper:#000000;--ink:#FFFFFF;--stone:#141414;--graphite:#9B9B9B;--hair:#272727;color-scheme:dark}
+}
+:root[data-theme="dark"]{--paper:#000000;--ink:#FFFFFF;--stone:#141414;--graphite:#9B9B9B;--hair:#272727;color-scheme:dark}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px);background:var(--paper)}
+body{height:100%;margin:0;background:var(--paper);color:var(--ink);font:400 15px/1.5 var(--sans);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:inherit}
+input,select,textarea{font:inherit;color:inherit}
+img{max-width:100%}
+:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+em{font-family:var(--serif);font-style:italic;font-weight:400}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- App frame ---------- */
+.app{position:relative;height:100%;display:flex;flex-direction:column;isolation:isolate}
+.stage{position:absolute;left:0;right:0;top:0;height:var(--stage-h,var(--hero-h));overflow:hidden;z-index:0;background:var(--dial)}
+.stage .bg{position:absolute;inset:0;background-size:cover;background-position:50% 50%;opacity:0;transition:opacity 1s ease}
+.stage .bg.on{opacity:1}
+.stage .pattern{opacity:1;background-color:var(--dial);
+  background-image:
+    linear-gradient(rgba(0,0,0,.5) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,0,0,.5) 1px,transparent 1px),
+    linear-gradient(135deg,rgba(255,255,255,.16) 0%,rgba(255,255,255,0) 48%,rgba(0,0,0,.28) 100%);
+  background-size:13px 13px,13px 13px,13px 13px}
+.stage .pattern::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 70% 90% at 28% 18%,rgba(255,255,255,.22),transparent 65%)}
+.shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,calc(var(--ov)*.6)) 0%,rgba(0,0,0,calc(var(--ov)*.15)) 40%,rgba(0,0,0,var(--ov)) 100%)}
+
+.hero{position:relative;z-index:1;min-height:var(--hero-h);flex:none;color:#fff;display:flex;flex-direction:column;padding:18px clamp(16px,3vw,44px) 16px}
+.topbar{display:flex;align-items:center;gap:20px 28px;flex-wrap:wrap}
+.brand{font-size:16px;font-weight:500;letter-spacing:.01em;white-space:nowrap}
+.brand em{font-size:21px;margin-left:3px}
+.views{display:flex;gap:26px;margin-inline:auto}
+.views button{font-size:14px;padding:6px 0;opacity:.7;border-bottom:1px solid transparent;transition:opacity .2s}
+.views button:hover{opacity:1}
+.views button[aria-selected="true"]{opacity:1;border-bottom-color:currentColor}
+.actions{display:flex;gap:10px;align-items:center}
+.pill{height:38px;padding:0 18px;border-radius:999px;border:1px solid currentColor;font-size:14px;display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap}
+.pill.sm{height:32px;padding:0 14px;font-size:13px}
+.hero .pill.solid{background:#fff;color:#000;border-color:#fff}
+.pill.ink{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.circle{width:44px;height:44px;border-radius:50%;border:1px solid currentColor;display:inline-grid;place-items:center;flex:none;transition:background .2s,color .2s}
+.circle.sm{width:38px;height:38px}
+.hero .circle:hover{background:#fff;color:#000}
+.hero-main{margin-top:auto;display:flex;align-items:flex-end;justify-content:space-between;gap:24px}
+.hero h1{margin:0;font-weight:300;font-size:clamp(44px,7.2vw,112px);line-height:.95;letter-spacing:-.025em}
+.hero h1 em{letter-spacing:-.01em}
+.hero-meta{margin:14px 0 0;font-size:15px;opacity:.88}
+.hero-meta .clock{font-variant-numeric:tabular-nums}
+.hero-nav{display:flex;gap:10px;padding-bottom:6px}
+.hero-foot{margin-top:22px}
+.track{height:1px;background:rgba(255,255,255,.35);position:relative}
+.track span{position:absolute;left:0;top:-1px;height:3px;background:#fff}
+.foot-row{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:13px;margin-top:10px}
+.foot-row .l,.foot-row .r{display:flex;gap:18px;flex-wrap:wrap;opacity:.88}
+.foot-row .warn{font-weight:500}
+.foot-row button{text-decoration:underline;text-underline-offset:3px}
+
+.app[data-hero="compact"]{--hero-h:clamp(210px,26vh,250px)}
+.app[data-hero="compact"] .hero h1{font-size:clamp(36px,4.6vw,64px)}
+.app[data-hero="compact"] .hero-meta{margin-top:8px}
+.app[data-hero="compact"] .hero-foot{margin-top:14px}
+.app[data-hero="backdrop"]{--hero-h:clamp(250px,32vh,330px)}
+.app[data-hero="backdrop"] .stage{position:fixed;inset:0;height:auto}
+.app[data-hero="backdrop"] .shade{background:rgba(0,0,0,calc(var(--ov)*.8))}
+.app[data-hero="backdrop"] .body{background:color-mix(in srgb,var(--paper) 90%,transparent);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);margin:0 clamp(0px,1.4vw,20px) clamp(0px,1.4vw,20px)}
+
+/* ---------- Body ---------- */
+.body{position:relative;z-index:1;flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 380px;background:var(--paper)}
+.view{overflow:auto;min-height:0;padding:22px clamp(16px,2.4vw,36px) 32px}
+.panel{overflow:auto;min-height:0;border-left:1px solid var(--hair);padding:14px 26px 48px}
+.link{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:4px;font-size:14px;cursor:pointer}
+.link.small{font-size:13px;color:var(--graphite)}
+.link.danger{color:#A12A2A}
+:root[data-theme="dark"] .link.danger{color:#E27C7C}
+.hint{font-size:13px;color:var(--graphite)}
+.empty{color:var(--graphite);font-size:14px;padding:22px 0;max-width:38ch;margin:0}
+.empty em{font-size:20px;color:var(--ink);display:block;margin-bottom:4px}
+
+/* Month */
+.month{display:flex;flex-direction:column;height:100%;min-height:0}
+.wdrow{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));font-size:12.5px;color:var(--graphite);padding:0 0 8px 2px}
+.grid{flex:1;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-auto-rows:minmax(96px,1fr);border-top:1px solid var(--hair);border-left:1px solid var(--hair)}
+.cell{position:relative;border-right:1px solid var(--hair);border-bottom:1px solid var(--hair);padding:8px 8px 6px;display:flex;flex-direction:column;gap:3px;min-width:0;cursor:pointer;background:var(--paper);transition:background .15s;-webkit-touch-callout:none;user-select:none}
+.cell:hover{background:var(--stone)}
+.cell.hl{background:color-mix(in srgb,var(--hl) 14%,var(--paper));box-shadow:inset 3px 0 0 var(--hl)}
+.cell.sel{box-shadow:inset 0 0 0 1.5px var(--ink)}
+.cell.hl.sel{box-shadow:inset 3px 0 0 var(--hl),inset 0 0 0 1.5px var(--ink)}
+.cell-top{display:flex;align-items:center;gap:8px;min-height:30px}
+.dnum{font-weight:300;font-size:21px;line-height:1;font-variant-numeric:tabular-nums;min-width:30px;height:30px;display:inline-grid;place-items:center;border-radius:50%}
+.cell.today .dnum{background:var(--ink);color:var(--paper);font-weight:400;font-size:16px}
+.cell.out .dnum{color:var(--graphite);opacity:.55}
+.cell.out .chips{opacity:.6}
+.hl-note{font-size:11.5px;color:var(--hl);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;filter:saturate(1.1) brightness(.85)}
+:root[data-theme="dark"] .hl-note{filter:brightness(1.4)}
+.wk{position:absolute;top:10px;right:8px;font-size:10.5px;color:var(--graphite)}
+.chips{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;min-width:0}
+.chip{display:flex;align-items:center;gap:6px;font-size:12.5px;line-height:1.35;min-width:0;border-radius:3px;padding:1px 3px;margin:0 -3px}
+.chip:hover{background:color-mix(in srgb,var(--ink) 7%,transparent)}
+.chip i{width:6px;height:6px;border-radius:50%;background:var(--c,#888);flex:none}
+.chip .tx{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip .tm{color:var(--graphite);font-variant-numeric:tabular-nums;flex:none}
+.chip.done .tx{text-decoration:line-through;color:var(--graphite)}
+.chip.ev i{border-radius:1px;transform:rotate(45deg)}
+.more{font-size:12px;color:var(--graphite)}
+.pbs{margin-top:auto;display:flex;flex-direction:column;gap:2px}
+.pb{font-size:10.5px;line-height:1.2;color:var(--graphite);border-bottom:2px solid var(--c);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:15px;padding-bottom:1px}
+
+/* Year */
+.year{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:28px 36px}
+.ym-name{font-family:var(--serif);font-style:italic;font-size:26px;line-height:1.1;margin:0 0 10px;display:block}
+.ym-name:hover{text-decoration:underline;text-underline-offset:5px;text-decoration-thickness:1px}
+.ym-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;font-size:12.5px}
+.wdi{color:var(--graphite);text-align:center;font-size:10.5px;padding:2px 0 4px}
+.yd{height:28px;display:grid;place-items:center;position:relative;border-radius:50%;font-variant-numeric:tabular-nums;-webkit-touch-callout:none}
+.yd:hover{background:var(--stone)}
+.yd.hl{background:color-mix(in srgb,var(--hl) 26%,transparent);border-radius:4px}
+.yd.has::after{content:"";position:absolute;bottom:3px;width:3px;height:3px;border-radius:50%;background:currentColor}
+.yd.today{background:var(--ink);color:var(--paper);border-radius:50%}
+.yd.sel{box-shadow:inset 0 0 0 1px var(--ink)}
+
+/* Week */
+.week-wrap{overflow-x:auto;margin:0 -4px;padding:0 4px}
+.week{display:grid;grid-template-columns:minmax(104px,136px) repeat(7,minmax(118px,1fr));border-top:1px solid var(--hair);border-left:1px solid var(--hair);min-width:940px}
+.wk-h,.wk-l,.wk-c{border-bottom:1px solid var(--hair);border-right:1px solid var(--hair)}
+.wk-h{padding:10px 10px 12px;display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+.wk-h small{font-size:12px;color:var(--graphite)}
+.wk-h b{font-weight:300;font-size:26px;line-height:1;font-variant-numeric:tabular-nums}
+.wk-h.today b{font-family:var(--serif);font-style:italic;font-weight:500}
+.wk-h.today{box-shadow:inset 0 -2px 0 var(--ink)}
+.wk-h.hl{background:color-mix(in srgb,var(--hl) 14%,var(--paper))}
+.wk-l{padding:12px 10px}
+.wk-l b{display:block;font-family:var(--serif);font-style:italic;font-weight:400;font-size:21px;line-height:1.1}
+.wk-l span{font-size:12px;color:var(--graphite);font-variant-numeric:tabular-nums}
+.wk-c{padding:6px;min-height:86px;display:flex;flex-direction:column;gap:4px;cursor:copy;min-width:0}
+.wk-c:hover{background:var(--stone)}
+.wk-c.hl{background:color-mix(in srgb,var(--hl) 9%,var(--paper))}
+.wk-c.now{background:var(--stone);box-shadow:inset 2px 0 0 var(--ink)}
+.blk{display:flex;gap:7px;align-items:flex-start;padding:6px 7px;background:var(--stone);border-left:2px solid var(--c,#888);font-size:12.5px;line-height:1.3;min-width:0;cursor:pointer}
+.wk-c.now .blk,.wk-c:hover .blk{background:var(--paper)}
+.blk .tx{overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
+.blk .tm{display:block;color:var(--graphite);font-size:11.5px}
+.blk.done .tx{text-decoration:line-through;color:var(--graphite)}
+.blk .check{width:16px;height:16px;margin-top:0}
+
+/* Day */
+.day{max-width:880px}
+.banner{display:flex;align-items:center;gap:10px;padding:12px 14px;margin-bottom:18px;background:color-mix(in srgb,var(--c) 14%,var(--paper));border-left:3px solid var(--c);font-size:14px}
+.dsec{border-top:1px solid var(--hair);padding:18px 0 16px;display:grid;grid-template-columns:200px minmax(0,1fr);gap:18px}
+.dsec h3{margin:0;font-family:var(--serif);font-style:italic;font-weight:400;font-size:30px;line-height:1.05}
+.dsec .range{display:block;font-size:13px;color:var(--graphite);margin-top:4px;font-variant-numeric:tabular-nums}
+.dsec.now h3::after{content:"Now";font-family:var(--sans);font-style:normal;font-size:11.5px;font-weight:500;vertical-align:middle;margin-left:10px;padding:2px 8px;border-radius:999px;background:var(--ink);color:var(--paper)}
+.nowbar{display:block;height:1px;background:var(--hair);margin-top:12px;position:relative;max-width:160px}
+.nowbar i{position:absolute;left:0;top:-1px;height:3px;background:var(--ink)}
+
+/* Lists */
+.list{list-style:none;margin:6px 0 10px;padding:0}
+.row{display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--hair)}
+.list.tight .row{padding:8px 0}
+.list.tight .row:last-child{border-bottom:0}
+.check{width:20px;height:20px;border-radius:50%;border:1px solid var(--c,var(--graphite));display:grid;place-items:center;flex:none;margin-top:1px;color:var(--paper);transition:background .15s}
+.check svg{opacity:0}
+.check:hover svg{opacity:.35;color:var(--ink)}
+.check.on{background:var(--ink);border-color:var(--ink)}
+.check.on svg{opacity:1;color:var(--paper)}
+.dot{width:8px;height:8px;background:var(--c,#888);flex:none;margin:7px 6px 0;transform:rotate(45deg)}
+.row-main{flex:1;min-width:0;text-align:left;display:block}
+.row-title{display:block;font-size:15px;line-height:1.35;word-break:break-word}
+.row.done .row-title{text-decoration:line-through;color:var(--graphite)}
+.row-meta{display:flex;flex-wrap:wrap;gap:2px 12px;font-size:12.5px;color:var(--graphite);margin-top:2px}
+.row-meta .pj::before{content:"";display:inline-block;width:7px;height:7px;background:var(--c);margin-right:5px;vertical-align:1px}
+.row-main:hover .row-title{text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
+.row.done .row-main:hover .row-title{text-decoration:line-through}
+.group-h{font-family:var(--serif);font-style:italic;font-size:21px;font-weight:400;margin:22px 0 0}
+
+/* Panel */
+.ptabs{display:flex;gap:22px;border-bottom:1px solid var(--hair);margin-bottom:20px;position:sticky;top:-14px;background:var(--paper);padding-top:6px;z-index:2}
+.app[data-hero="backdrop"] .ptabs{background:transparent}
+.ptabs button{padding:10px 0;font-size:14px;color:var(--graphite);border-bottom:1px solid transparent;margin-bottom:-1px}
+.ptabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+.ptabs sup{font-size:10.5px;margin-left:2px}
+.p-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.p-head h2{margin:0;font-weight:300;font-size:28px;line-height:1.1;letter-spacing:-.015em}
+.p-links{display:flex;gap:16px;margin-top:8px}
+.quick{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--ink);margin:18px 0 12px}
+.quick input{flex:1;min-width:0;border:0;background:transparent;padding:11px 0;font-size:15px;outline:none}
+.quick input::placeholder{color:var(--graphite)}
+.quick .circle{width:32px;height:32px;border-color:var(--ink)}
+.quick .circle:hover{background:var(--ink);color:var(--paper)}
+.chipset{display:flex;flex-wrap:wrap;gap:6px}
+.chip-btn{min-height:30px;padding:3px 12px;border:1px solid var(--hair);border-radius:999px;font-size:12.5px;display:inline-flex;align-items:center;gap:6px;transition:border-color .15s}
+.chip-btn:hover{border-color:var(--ink)}
+.chip-btn small{color:var(--graphite);font-size:11.5px}
+.chip-btn[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.chip-btn[aria-pressed="true"] small{color:inherit;opacity:.7}
+.chip-btn .sw{width:9px;height:9px}
+.chip-btn.dashed{border-style:dashed}
+.filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+.proj{display:block;width:100%;text-align:left;padding:18px 0;border-bottom:1px solid var(--hair)}
+.proj-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.proj-name{font-family:var(--serif);font-style:italic;font-size:24px;line-height:1.1}
+.proj-name::before{content:"";display:inline-block;width:9px;height:9px;background:var(--c);margin-right:9px;vertical-align:3px}
+.proj:hover .proj-name{text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:1px}
+.status{font-size:11.5px;border:1px solid var(--hair);border-radius:999px;padding:2px 9px;white-space:nowrap;color:var(--graphite)}
+.status.active{border-color:var(--ink);color:var(--ink)}
+.proj-dates{font-size:13px;color:var(--graphite);margin-top:4px}
+.bar{height:1px;background:var(--hair);margin:14px 0 8px;position:relative}
+.bar i{position:absolute;left:0;top:-1px;height:3px;background:var(--c,var(--ink))}
+.proj-foot{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--graphite)}
+.proj-foot .late{color:#A12A2A}
+
+/* Dialog */
+dialog{border:0;padding:0;width:min(640px,calc(100vw - 24px));max-height:calc(100dvh - 40px);background:var(--paper);color:var(--ink);box-shadow:0 30px 90px rgba(0,0,0,.4);overflow:hidden}
+dialog.wide{width:min(820px,calc(100vw - 24px))}
+dialog[open]{display:flex;flex-direction:column}
+dialog > form{display:flex;flex-direction:column;min-height:0;flex:1}
+dialog::backdrop{background:rgba(0,0,0,.5);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+.dlg-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:24px 28px 4px;flex:none}
+.dlg-head h2{font-weight:300;font-size:32px;line-height:1.05;margin:0;letter-spacing:-.02em}
+.dlg-body{padding:16px 28px 22px;overflow:auto;flex:1;min-height:0}
+.dlg-foot{display:flex;gap:10px;align-items:center;padding:14px 28px 22px;border-top:1px solid var(--hair);flex:none;flex-wrap:wrap}
+.grow{flex:1}
+.icon-btn{width:34px;height:34px;display:inline-grid;place-items:center;border-radius:50%;flex:none;color:var(--graphite)}
+.icon-btn:hover{background:var(--stone);color:var(--ink)}
+.field{display:block;margin:0 0 18px}
+.field > span,.lbl{display:block;font-size:12.5px;color:var(--graphite);margin-bottom:6px}
+.inp{width:100%;border:0;border-bottom:1px solid var(--hair);padding:9px 0;background:transparent;border-radius:0;outline:none;transition:border-color .15s}
+.inp:focus{border-bottom-color:var(--ink)}
+select.inp{appearance:none;background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);background-position:calc(100% - 10px) 55%,calc(100% - 5px) 55%;background-size:5px 5px;background-repeat:no-repeat;padding-right:24px}
+select.inp option{background:var(--paper);color:var(--ink)}
+textarea.inp{resize:vertical;min-height:70px;line-height:1.5}
+.big{font-size:26px;font-weight:300;border-bottom-color:var(--ink);margin-bottom:20px;padding:6px 0 10px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:0 22px}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--hair);border-radius:999px;padding:3px;gap:2px}
+.seg button{padding:6px 14px;border-radius:999px;font-size:13px;color:var(--graphite)}
+.seg button:hover{color:var(--ink)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.newtab{display:grid;grid-template-columns:1fr 110px 110px auto;gap:10px;align-items:end;margin-top:12px;padding:12px;background:var(--stone)}
+.stabs{display:flex;gap:22px;padding:6px 28px 0;border-bottom:1px solid var(--hair);overflow-x:auto;flex:none;scrollbar-width:none}
+.stabs button{padding:12px 0;font-size:14px;color:var(--graphite);border-bottom:1px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.stabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+.setrow{display:grid;grid-template-columns:190px minmax(0,1fr);gap:14px;align-items:center;padding:13px 0;border-bottom:1px solid var(--hair)}
+.setrow > span{font-size:14px}
+.setrow .hint{display:block;margin-top:2px}
+.lrow{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:12px;align-items:center;padding:6px 0;border-bottom:1px solid var(--hair)}
+.lrow.tabs{grid-template-columns:minmax(0,1fr) 108px 108px auto}
+input[type="color"]{width:32px;height:32px;border:1px solid var(--hair);border-radius:50%;padding:0;background:none;cursor:pointer;overflow:hidden}
+input[type="color"]::-webkit-color-swatch-wrapper{padding:0}
+input[type="color"]::-webkit-color-swatch{border:0;border-radius:50%}
+input[type="color"]::-moz-color-swatch{border:0;border-radius:50%}
+input[type="range"]{width:100%;accent-color:var(--ink)}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:22px;margin-top:18px}
+.ph{margin:0}
+.ph-img{aspect-ratio:16/9;background:var(--stone) center/cover no-repeat}
+.ph figcaption{padding-top:10px}
+.mgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-bottom:6px}
+.mgrid button{font-size:11.5px;padding:4px 0;border:1px solid var(--hair);text-align:center}
+.mgrid button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.palette{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.palette button{width:24px;height:24px;border-radius:50%;background:var(--c);border:2px solid var(--paper);box-shadow:0 0 0 1px var(--hair)}
+.palette button[aria-pressed="true"]{box-shadow:0 0 0 2px var(--ink)}
+.btnrow{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+hr{border:0;border-top:1px solid var(--hair);margin:22px 0}
+
+/* Popover */
+.pop{position:fixed;z-index:60;width:292px;background:var(--paper);color:var(--ink);border:1px solid var(--hair);box-shadow:0 20px 60px rgba(0,0,0,.28);padding:16px 18px 14px}
+.pop[hidden]{display:none}
+.pop-head{display:flex;justify-content:space-between;align-items:center;margin:-4px -8px 10px 0}
+.pop-head strong{font-weight:500;font-size:15px}
+.pop .field{margin-bottom:12px}
+.sw-list{display:grid;gap:2px;margin:4px 0 8px}
+.sw-list button{display:flex;gap:10px;align-items:center;width:100%;padding:7px 8px;font-size:14px}
+.sw-list button:hover{background:var(--stone)}
+.sw-list button[aria-pressed="true"]{font-weight:600;background:var(--stone)}
+.sw{width:14px;height:14px;background:var(--c);flex:none;display:inline-block}
+.pop-foot{display:flex;justify-content:space-between;gap:10px;padding-top:8px;border-top:1px solid var(--hair)}
+
+/* Toast & FAB */
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);background:var(--ink);color:var(--paper);padding:10px 12px 10px 20px;border-radius:999px;font-size:14px;display:flex;gap:14px;align-items:center;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:80;max-width:calc(100vw - 32px)}
+.toast.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.toast button{text-decoration:underline;text-underline-offset:3px;padding:2px 8px}
+.toast:not(:has(button)){padding-right:20px}
+.toast[popover]{inset:auto;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));margin:0;border:0;overflow:visible}
+body:has(dialog[open]) .toast{bottom:calc(100px + env(safe-area-inset-bottom,0px))}
+.fab{display:none;position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom,0px));width:58px;height:58px;border-radius:50%;background:var(--ink);color:var(--paper);place-items:center;z-index:40;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+
+/* Responsive */
+@media (max-width:1180px){.body{grid-template-columns:minmax(0,1fr) 340px}}
+@media (max-width:980px){
+  .app{height:auto;min-height:100%}
+  .body{display:block}
+  .view{overflow:visible}
+  .panel{border-left:0;border-top:1px solid var(--hair);overflow:visible;padding-bottom:110px}
+  .ptabs{top:0}
+  .month{min-height:0}
+  .fab{display:grid}
+  .actions .pill.solid{display:none}
+}
+@media (max-width:760px){
+  .views{order:3;width:100%;margin:0;justify-content:space-between;border-top:1px solid rgba(255,255,255,.25);padding-top:6px}
+  .actions{margin-left:auto}
+  .actions .pill{display:none}
+  .hero-nav .circle{width:40px;height:40px}
+  .grid{grid-auto-rows:minmax(64px,auto)}
+  .cell{padding:5px 4px}
+  .dnum{font-size:16px;min-width:26px;height:26px}
+  .cell.today .dnum{font-size:14px}
+  .hl-note,.wk,.pb span{display:none}
+  .chips{flex-direction:row;flex-wrap:wrap;gap:3px}
+  .chip{padding:0;margin:0}
+  .chip .tx,.chip .tm{display:none}
+  .more{font-size:11px}
+  .pb{min-height:0;border-bottom-width:2px;font-size:0}
+  .dsec{grid-template-columns:1fr;gap:6px}
+  .setrow{grid-template-columns:1fr;gap:8px}
+  .two{grid-template-columns:1fr}
+  .newtab{grid-template-columns:1fr 1fr}
+  .newtab .inp:first-child{grid-column:1/-1}
+  .lrow.tabs{grid-template-columns:minmax(0,1fr) 92px 92px auto;gap:6px}
+  dialog,dialog.wide{width:100vw;max-width:100vw;margin:auto 0 0;max-height:94dvh}
+  .dlg-head,.dlg-body,.dlg-foot{padding-left:20px;padding-right:20px}
+  .dlg-foot{padding-bottom:calc(18px + env(safe-area-inset-bottom,0px))}
+  .stabs{padding:6px 20px 0}
+  .pop{left:0 !important;right:0;top:auto !important;bottom:0;width:auto;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none !important;animation:none !important}}
+</style>
+</head>
+<body>
+<div class="app" id="app" data-hero="tall">
+  <div class="stage" aria-hidden="true">
+    <div class="bg pattern"></div>
+    <div class="bg" id="bgA"></div>
+    <div class="bg" id="bgB"></div>
+    <div class="shade"></div>
+  </div>
+
+  <header class="hero">
+    <nav class="topbar" aria-label="Calendar">
+      <div class="brand"><span id="brandName">Matt</span> <em id="brandTitle">Calendar</em></div>
+      <div class="views" role="tablist" aria-label="View">
+        <button type="button" role="tab" data-action="view" data-view="year">Year</button>
+        <button type="button" role="tab" data-action="view" data-view="month">Month</button>
+        <button type="button" role="tab" data-action="view" data-view="week">Week</button>
+        <button type="button" role="tab" data-action="view" data-view="day">Day</button>
+      </div>
+      <div class="actions">
+        <button type="button" class="pill" data-action="today">Today</button>
+        <button type="button" class="pill solid" data-action="new">New entry</button>
+        <button type="button" class="circle sm" data-action="backgrounds" aria-label="Background photos" title="Background photos">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3.5" y="5" width="17" height="14"/><path d="M3.5 16l5-5 4 4 3-3 5 5"/><circle cx="15.5" cy="9" r="1.4"/></svg>
+        </button>
+        <button type="button" class="circle sm" data-action="settings" aria-label="Customize" title="Customize">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+        </button>
+      </div>
+    </nav>
+    <div class="hero-main">
+      <div>
+        <h1 id="heroTitle"></h1>
+        <p class="hero-meta" id="heroMeta"></p>
+      </div>
+      <div class="hero-nav">
+        <button type="button" class="circle" data-action="prev" aria-label="Previous">
+          <svg width="18" height="18" viewBox="0 0 24 24"><path d="M14.5 5.5 8 12l6.5 6.5" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>
+        </button>
+        <button type="button" class="circle" data-action="next" aria-label="Next">
+          <svg width="18" height="18" viewBox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="hero-foot">
+      <div class="track"><span id="yearFill"></span></div>
+      <div class="foot-row"><div class="l" id="heroStats"></div><div class="r" id="heroRight"></div></div>
+    </div>
+  </header>
+
+  <main class="body">
+    <section class="view" id="view" aria-label="Calendar view"></section>
+    <aside class="panel" id="panel" aria-label="Details"></aside>
+  </main>
+</div>
+
+<button type="button" class="fab" data-action="new" aria-label="New entry">
+  <svg width="22" height="22" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.5"/></svg>
+</button>
+<dialog id="dlg"></dialog>
+<div class="pop" id="pop" hidden role="dialog" aria-label="Highlight day"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<input type="file" id="fileImg" accept="image/*" multiple hidden>
+<input type="file" id="fileJson" accept="application/json,.json" hidden>
+
+<script src="config.js"></script>
+<script>
+(() => {
+'use strict';
+
+/* ================= Utilities ================= */
+const LS_KEY = 'mattcal.v1';
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const pad = n => String(n).padStart(2, '0');
+const toISO = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const fromISO = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+const todayISO = () => toISO(new Date());
+const nid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
+const clone = o => JSON.parse(JSON.stringify(o));
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MON = MONTHS.map(m => m.slice(0, 3));
+const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const PALETTE = ['#1E2B45','#3B5B8A','#4F6B5A','#7A8B4F','#B08D57','#8A6D3B','#9B2C2C','#8A4F6B','#6B5B8A','#555555'];
+const I = {
+  x: '<svg width="16" height="16" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.4"/></svg>',
+  plus: '<svg width="16" height="16" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.5"/></svg>',
+  check: '<svg width="11" height="11" viewBox="0 0 16 16"><path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>'
+};
+function isoWeek(d) {
+  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const day = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - day);
+  const y0 = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+  return Math.ceil(((t - y0) / 864e5 + 1) / 7);
+}
+const dayOfYear = d => Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - new Date(d.getFullYear(), 0, 1)) / 864e5) + 1;
+const daysInYear = y => (new Date(y, 1, 29).getMonth() === 1 ? 366 : 365);
+
+/* ================= State ================= */
+function defaults() {
+  return {
+    v: 1,
+    settings: {
+      owner: 'Matt', title: 'Calendar', theme: 'auto', heroSize: 'tall', overlay: 40,
+      weekStart: 1, clock24: true, showSeconds: false, defaultView: 'month',
+      showProjects: true, showWeekNums: false, bgRotate: 'fixed'
+    },
+    categories: [
+      { id: 'work', name: 'Work', color: '#1E2B45' },
+      { id: 'meeting', name: 'Meeting', color: '#4F6B5A' },
+      { id: 'event', name: 'Event', color: '#B08D57' },
+      { id: 'urgent', name: 'Urgent', color: '#9B2C2C' },
+      { id: 'personal', name: 'Personal', color: '#6B5B8A' }
+    ],
+    timeTabs: [
+      { id: 'early', name: 'Early', start: '06:00', end: '09:00' },
+      { id: 'morning', name: 'Morning', start: '09:00', end: '12:00' },
+      { id: 'midday', name: 'Midday', start: '12:00', end: '14:00' },
+      { id: 'afternoon', name: 'Afternoon', start: '14:00', end: '18:00' },
+      { id: 'evening', name: 'Evening', start: '18:00', end: '22:00' }
+    ],
+    highlightStyles: [
+      { id: 'holiday', name: 'Holiday', color: '#B08D57' },
+      { id: 'leave', name: 'Leave', color: '#4F6B5A' },
+      { id: 'deadline', name: 'Deadline', color: '#9B2C2C' },
+      { id: 'travel', name: 'Travel', color: '#3B5B8A' },
+      { id: 'focus', name: 'Focus day', color: '#6B6B6B' }
+    ],
+    projects: [], entries: [], highlights: {}, backgrounds: []
+  };
+}
+function normalize(s) {
+  const d = defaults();
+  s = s && typeof s === 'object' ? s : d;
+  s.v = 1;
+  s.settings = { ...d.settings, ...(s.settings || {}) };
+  for (const k of ['categories', 'timeTabs', 'highlightStyles', 'projects', 'entries', 'backgrounds'])
+    if (!Array.isArray(s[k])) s[k] = d[k];
+  if (!s.highlights || typeof s.highlights !== 'object' || Array.isArray(s.highlights)) s.highlights = {};
+  return s;
+}
+function loadLocal() {
+  try { const raw = localStorage.getItem(LS_KEY); return raw ? normalize(JSON.parse(raw)) : null; } catch { return null; }
+}
+let state = loadLocal() || defaults();
+
+const ui = {
+  view: state.settings.defaultView || 'month', cursor: new Date(), selected: todayISO(),
+  panel: 'day', todo: 'today', quickTab: null, sTab: 'look', lastDay: todayISO(), lastMin: -1,
+  confirm: null, back: null
+};
+
+/* ================= Lookups ================= */
+const cat = id => state.categories.find(c => c.id === id);
+const tab = id => state.timeTabs.find(t => t.id === id);
+const proj = id => state.projects.find(p => p.id === id);
+const hlStyle = id => state.highlightStyles.find(h => h.id === id);
+const tabsSorted = () => [...state.timeTabs].sort((a, b) => (a.start || '').localeCompare(b.start || ''));
+const tabForTime = t => tabsSorted().find(x => t >= x.start && t < (x.end || '24:00'));
+const entryTab = e => (e.tab && tab(e.tab)) || (e.time && tabForTime(e.time)) || null;
+const sortKey = e => e.time || tab(e.tab)?.start || '99:99';
+const byTime = (a, b) => sortKey(a).localeCompare(sortKey(b)) || (a.created || 0) - (b.created || 0);
+const isTask = e => e.kind !== 'event';
+const isRepeat = e => e.repeat && e.repeat !== 'none';
+
+function fmtTime(t) {
+  if (!t) return '';
+  if (state.settings.clock24) return t;
+  let [h, m] = t.split(':').map(Number); const ap = h >= 12 ? 'pm' : 'am'; h = h % 12 || 12;
+  return m ? `${h}:${pad(m)} ${ap}` : `${h} ${ap}`;
+}
+function timeLabel(e) {
+  if (e.time) return fmtTime(e.time) + (e.timeEnd ? '–' + fmtTime(e.timeEnd) : '');
+  const t = tab(e.tab); return t ? t.name : '';
+}
+function fmtShort(iso) {
+  const d = fromISO(iso); const y = d.getFullYear() !== new Date().getFullYear() ? ' ' + d.getFullYear() : '';
+  return `${d.getDate()} ${MON[d.getMonth()]}${y}`;
+}
+function fmtLong(iso) { const d = fromISO(iso); return `${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`; }
+
+function occursOn(e, d) {
+  if (!e.date || d < e.date) return false;
+  const r = e.repeat || 'none';
+  if (r === 'none') return d <= (e.endDate && e.endDate > e.date ? e.endDate : e.date);
+  if (e.until && d > e.until) return false;
+  const a = fromISO(e.date), b = fromISO(d);
+  switch (r) {
+    case 'daily': return true;
+    case 'weekdays': { const w = b.getDay(); return w > 0 && w < 6; }
+    case 'weekly': return a.getDay() === b.getDay();
+    case 'biweekly': return a.getDay() === b.getDay() && Math.round((b - a) / 864e5) % 14 === 0;
+    case 'monthly': return a.getDate() === b.getDate();
+    case 'yearly': return a.getDate() === b.getDate() && a.getMonth() === b.getMonth();
+  }
+  return false;
+}
+const isDone = (e, d) => isRepeat(e) ? (e.doneDates || []).includes(d) : !!e.done;
+const entriesOn = d => state.entries.filter(e => occursOn(e, d)).sort(byTime);
+const startOfWeek = d => addDays(d, -((d.getDay() - (+state.settings.weekStart) + 7) % 7));
+
+function projectStats(p) {
+  const tasks = state.entries.filter(e => e.project === p.id && isTask(e));
+  const done = tasks.filter(e => isRepeat(e) ? false : e.done).length;
+  const pct = p.mode === 'manual' ? Math.max(0, Math.min(100, +p.progress || 0))
+    : (tasks.length ? Math.round(done / tasks.length * 100) : (p.status === 'done' ? 100 : 0));
+  return { total: tasks.length, done, pct };
+}
+
+/* ================= Storage (account sync when available, browser otherwise) ================= */
+const Store = { mode: 'local', col: null, assets: null, downloads: null, lastSaved: {}, loaded: false, dirty: false, saving: false, again: false, t: 0, status: 'local' };
+const urlCache = {};
+
+const IDB = {
+  p: null,
+  open() {
+    if (!this.p) this.p = new Promise((res, rej) => {
+      try {
+        const r = indexedDB.open('mattcal', 1);
+        r.onupgradeneeded = () => r.result.createObjectStore('img');
+        r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+      } catch (e) { rej(e); }
+    });
+    return this.p;
+  },
+  async tx(mode, fn) {
+    const db = await this.open();
+    return new Promise((res, rej) => {
+      const t = db.transaction('img', mode); const st = t.objectStore('img'); const req = fn(st);
+      t.oncomplete = () => res(req && req.result); t.onerror = () => rej(t.error);
+    });
+  },
+  put(k, v) { return this.tx('readwrite', s => s.put(v, k)); },
+  get(k) { return this.tx('readonly', s => s.get(k)); },
+  del(k) { return this.tx('readwrite', s => s.delete(k)); }
+};
+
+function splitState(s) {
+  const { entries, ...meta } = s;
+  const docs = { meta: clone(meta) };
+  for (const e of entries) {
+    const k = 'entries-' + (e.date ? e.date.slice(0, 4) : 'inbox');
+    (docs[k] ||= { items: [] }).items.push(e);
+  }
+  for (const k in docs) if (k !== 'meta') docs[k] = clone(docs[k]);
+  return docs;
+}
+function joinDocs(map) {
+  const s = normalize(clone(map.meta || {}));
+  s.entries = [];
+  for (const k in map) if (k.startsWith('entries-') && Array.isArray(map[k].items)) s.entries.push(...map[k].items);
+  return s;
+}
+
+function setSync(s) {
+  Store.status = s;
+  renderHeroRight();
+}
+/* Change tracking: every item carries `u` (last edited, ms) and deletions leave a
+   short-lived tombstone, so two devices editing at once can be merged instead of one
+   overwriting the other. */
+const KINDS = [['entries', 'e'], ['projects', 'p'], ['backgrounds', 'b']];
+let base = null;
+const bare = x => { const { u, ...rest } = x; return JSON.stringify(rest); };
+function setBase() {
+  base = {};
+  for (const [k] of KINDS) { base[k] = {}; for (const x of state[k]) base[k][x.id] = bare(x); }
+  base.h = {}; for (const d in state.highlights) base.h[d] = bare(state.highlights[d]);
+}
+function stampChanges() {
+  if (!base) { setBase(); return; }
+  const now = Date.now(); state.deleted = state.deleted || {};
+  for (const [k, pre] of KINDS) {
+    const seen = new Set();
+    for (const x of state[k]) { seen.add(x.id); if (base[k][x.id] !== bare(x)) x.u = now; }
+    for (const id in base[k]) if (!seen.has(id)) state.deleted[pre + ':' + id] = now;
+  }
+  for (const d in state.highlights) { const h = state.highlights[d]; if (base.h[d] !== bare(h)) h.u = now; }
+  for (const d in base.h) if (!state.highlights[d]) state.deleted['h:' + d] = now;
+  const cutoff = now - 120 * 864e5;
+  for (const key in state.deleted) if (state.deleted[key] < cutoff) delete state.deleted[key];
+  setBase();
+}
+function mergeStates(L, R) {
+  const out = clone(L), del = { ...(R.deleted || {}) };
+  for (const key in (L.deleted || {})) del[key] = Math.max(del[key] || 0, L.deleted[key]);
+  for (const [k, pre] of KINDS) {
+    const m = new Map();
+    for (const x of (R[k] || [])) m.set(x.id, x);
+    for (const x of (L[k] || [])) { const r = m.get(x.id); if (!r || (x.u || 0) >= (r.u || 0)) m.set(x.id, x); }
+    out[k] = [...m.values()].filter(x => !((del[pre + ':' + x.id] || 0) > (x.u || 0)));
+  }
+  const hl = { ...(R.highlights || {}) };
+  for (const d in (L.highlights || {})) { const r = hl[d], l = L.highlights[d]; if (!r || (l.u || 0) >= (r.u || 0)) hl[d] = l; }
+  for (const d in hl) if ((del['h:' + d] || 0) > (hl[d].u || 0)) delete hl[d];
+  out.highlights = hl; out.deleted = del;
+  return normalize(out);
+}
+function commit() { renderAll(); scheduleSave(); }
+function scheduleSave() {
+  stampChanges();
+  Store.dirty = true;
+  if (Store.mode !== 'local') setSync('saving');
+  clearTimeout(Store.t);
+  Store.t = setTimeout(flush, Store.mode === 'github' ? 1500 : 450);
+}
+async function flush() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch {}
+  if (Store.mode === 'local') { Store.dirty = false; setSync('local'); return; }
+  if (!Store.loaded) {
+    Store.dirty = false;
+    if (Store.mode === 'github') { ghMeta({ pending: true }); setSync('offline'); }
+    return;
+  }
+  if (Store.saving) { Store.again = true; return; }
+  Store.saving = true;
+  if (Store.mode === 'github') {
+    try {
+      await ghSave();
+      setSync('gh');
+    } catch (err) {
+      console.warn('Sync failed', err); ghMeta({ pending: true });
+      setSync(err.status === 401 ? 'auth' : err.status === 403 || err.status === 404 ? 'denied' : navigator.onLine === false ? 'offline' : 'error');
+    }
+    Store.saving = false; Store.dirty = false;
+    if (Store.again) { Store.again = false; flush(); }
+    return;
+  }
+  try {
+    const docs = splitState(state);
+    for (const k of Object.keys(Store.lastSaved)) if (!docs[k]) docs[k] = { items: [] };
+    for (const [k, body] of Object.entries(docs)) {
+      const json = JSON.stringify(body);
+      if (Store.lastSaved[k] === json) continue;
+      if (json.length > 250000) { setSync('full'); continue; }
+      await Store.col.doc(k).set(body);
+      Store.lastSaved[k] = json;
+    }
+    if (Store.status !== 'full') setSync('cloud');
+  } catch (err) {
+    console.warn('Sync failed', err);
+    setSync(err && err.code === 'quota_exceeded' ? 'full' : 'error');
+  }
+  Store.saving = false; Store.dirty = false;
+  if (Store.again) { Store.again = false; flush(); }
+}
+function applyRemote(map) {
+  state = joinDocs(map); setBase();
+  Store.lastSaved = {};
+  for (const k in map) Store.lastSaved[k] = JSON.stringify(map[k]);
+  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch {}
+  renderAll();
+  if (dlg.open && dlg.dataset.kind === 'settings') renderSettings();
+}
+/* ---------- GitHub sync (used by the self-hosted / GitHub Pages build) ---------- */
+const CFG = window.MATTCAL_CONFIG || {};
+const GH_FILE = 'calendar.json';
+const lsGet = k => { try { return localStorage.getItem(k); } catch { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
+let GH = null;
+function ghStored() {
+  try { const g = JSON.parse(lsGet('mattcal.github') || 'null'); return g && g.owner && g.repo && g.token ? g : null; } catch { return null; }
+}
+function ghMeta(patch) {
+  let m = {}; try { m = JSON.parse(lsGet('mattcal.ghsync') || '{}'); } catch {}
+  if (patch) { m = { ...m, ...patch }; lsSet('mattcal.ghsync', JSON.stringify(m)); }
+  return m;
+}
+const b64enc = str => {
+  const bytes = new TextEncoder().encode(str); let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+};
+const b64dec = b64 => new TextDecoder().decode(Uint8Array.from(atob(String(b64).replace(/\s/g, '')), c => c.charCodeAt(0)));
+const blobToB64 = blob => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = rej; r.readAsDataURL(blob); });
+const ghPath = file => `/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${file.split('/').map(encodeURIComponent).join('/')}`;
+async function gh(method, path, body, extra = {}) {
+  const r = await fetch('https://api.github.com' + path, {
+    method, cache: 'no-store',
+    headers: { Authorization: `Bearer ${GH.token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', ...(body ? { 'Content-Type': 'application/json' } : {}), ...extra },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  return r;
+}
+async function ghErr(r, what) {
+  let msg = ''; try { msg = (await r.json()).message || ''; } catch {}
+  const e = new Error(`${what} failed (${r.status}) ${msg}`); e.status = r.status; return e;
+}
+async function ghFetchData() {
+  const r = await gh('GET', ghPath(GH_FILE));
+  if (r.status === 404) {
+    const repo = await gh('GET', `/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}`);
+    if (!repo.ok) throw await ghErr(repo, 'Opening the repo');
+    return null;
+  }
+  if (!r.ok) throw await ghErr(r, 'Loading');
+  const j = await r.json();
+  let content = j.content;
+  if (!content && j.sha) {
+    const b = await gh('GET', `/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/git/blobs/${j.sha}`);
+    if (!b.ok) throw await ghErr(b, 'Loading');
+    content = (await b.json()).content;
+  }
+  return { sha: j.sha, data: JSON.parse(b64dec(content)) };
+}
+async function ghSave() {
+  const content = b64enc(JSON.stringify(state, null, 1));
+  const put = sha => gh('PUT', ghPath(GH_FILE), { message: 'Update calendar', content, ...(sha ? { sha } : {}) });
+  let r = await put(Store.sha);
+  if (r.status === 409 || r.status === 422) {
+    const remote = await ghFetchData();
+    Store.sha = remote ? remote.sha : null;
+    if (remote && remote.data && remote.data.v) {
+      state = mergeStates(state, remote.data); setBase();
+      try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch {}
+      renderAll(); loadLocalImages();
+    }
+    r = await gh('PUT', ghPath(GH_FILE), { message: 'Update calendar (merged)', content: b64enc(JSON.stringify(state, null, 1)), ...(Store.sha ? { sha: Store.sha } : {}) });
+  }
+  if (!r.ok) throw await ghErr(r, 'Saving');
+  Store.sha = (await r.json()).content.sha;
+  ghMeta({ pending: false, sha: Store.sha });
+}
+function takeRemote(row) {
+  Store.sha = row.sha; ghMeta({ pending: false, sha: row.sha });
+  state = normalize(row.data); setBase();
+  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch {}
+  bgKey = null; renderAll(); loadLocalImages();
+  if (dlg.open && dlg.dataset.kind === 'settings') renderSettings();
+}
+async function ghLoad() {
+  const row = await ghFetchData();
+  const meta = ghMeta();
+  Store.loaded = true;
+  if (row && row.data && row.data.v) {
+    if (meta.pending && row.sha === meta.sha) { Store.sha = row.sha; await flush(); }
+    else if (meta.pending) {
+      Store.sha = row.sha; state = mergeStates(state, row.data); setBase();
+      bgKey = null; renderAll(); loadLocalImages(); await flush();
+    }
+    else if (row.sha !== Store.sha) takeRemote(row);
+  } else {
+    Store.sha = row ? row.sha : null;
+    await flush();
+  }
+  if (Store.status === 'connecting' || Store.status === 'offline' || Store.status === 'error') setSync('gh');
+}
+async function ghPull() {
+  if (Store.mode !== 'github' || Store.dirty || Store.saving || document.visibilityState === 'hidden') return;
+  try {
+    if (!Store.loaded) { await ghLoad(); return; }
+    const row = await ghFetchData();
+    if (row && row.data && row.data.v && row.sha !== Store.sha && !Store.dirty && !Store.saving) takeRemote(row);
+    if (Store.status !== 'gh' && Store.status !== 'saving') setSync('gh');
+  } catch (err) { console.warn(err); setSync(err.status === 401 ? 'auth' : navigator.onLine === false ? 'offline' : 'error'); }
+}
+let ghTimers = false;
+async function initGithub() {
+  const cfg = ghStored();
+  if (!cfg) { Store.mode = 'local'; setSync('local'); return; }
+  GH = cfg; Store.mode = 'github'; Store.loaded = false; Store.sha = ghMeta().sha || null;
+  setSync('connecting');
+  try { await ghLoad(); }
+  catch (err) { console.warn(err); setSync(err.status === 401 ? 'auth' : err.status === 403 || err.status === 404 ? 'denied' : navigator.onLine === false ? 'offline' : 'error'); }
+  if (!ghTimers) {
+    ghTimers = true;
+    setInterval(ghPull, 45000);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') ghPull(); });
+    addEventListener('online', () => { Store.dirty ? flush() : ghPull(); });
+  }
+}
+async function ghConnect() {
+  const owner = ($('#ghOwner')?.value || '').trim().replace(/^@/, '');
+  const repo = ($('#ghRepo')?.value || '').trim().replace(/^.*\//, '');
+  const token = ($('#ghToken')?.value || '').trim();
+  const out = $('#ghMsg');
+  const say = m => { if (out) out.textContent = m; };
+  if (!owner || !repo || !token) { say('Fill in all three fields.'); return; }
+  say('Checking…');
+  GH = { owner, repo, token };
+  try {
+    const r = await gh('GET', `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`);
+    if (r.status === 401) { say('GitHub didn’t accept that token. Copy it again and paste it in full.'); GH = null; return; }
+    if (!r.ok) { say(`Can’t open ${owner}/${repo} with this token. Check the spelling, and that the token was given access to this repo.`); GH = null; return; }
+    const info = await r.json();
+    lsSet('mattcal.github', JSON.stringify(GH));
+    ghMeta({ pending: false, sha: null }); Store.sha = null;
+    await initGithub();
+    renderSettings();
+    toast(info.private ? `Connected to ${owner}/${repo}` : `Connected. Note: ${repo} is public, so anyone can read it. Make it private in GitHub.`);
+  } catch (err) { console.warn(err); say('Couldn’t reach GitHub. Check your connection and try again.'); GH = null; }
+}
+async function ghUploadPhoto(blob) {
+  const path = `photos/${nid()}${nid()}.jpg`;
+  const r = await gh('PUT', ghPath(path), { message: 'Add header photo', content: await blobToB64(blob) });
+  if (!r.ok) throw await ghErr(r, 'Uploading photo');
+  const sha = (await r.json()).content.sha;
+  try { await IDB.put('gh:' + path, blob); } catch {}
+  urlCache['gh:' + path] = URL.createObjectURL(blob);
+  return { path, sha };
+}
+async function ghLoadPhoto(b) {
+  const key = 'gh:' + b.gh;
+  if (urlCache[key]) return;
+  let blob = null;
+  try { blob = await IDB.get(key); } catch {}
+  if (!blob && GH) {
+    try {
+      const r = await gh('GET', ghPath(b.gh), null, { Accept: 'application/vnd.github.raw+json' });
+      if (r.ok) { blob = await r.blob(); try { await IDB.put(key, blob); } catch {} }
+    } catch {}
+  }
+  if (blob) urlCache[key] = URL.createObjectURL(blob);
+}
+
+async function initCloud() {
+  if (!window.claude || typeof window.claude.use !== 'function') { return initGithub(); }
+  setSync('connecting');
+  const get = n => window.claude.use(n).catch(() => null);
+  const [db, user, assets, downloads] = await Promise.all([get('db'), get('user'), get('assets'), get('downloads')]);
+  Store.assets = assets; Store.downloads = downloads;
+  if (!db || !user) { setSync('local'); return; }
+  let id = null;
+  try { id = await user.id(); } catch {}
+  if (!id) { setSync('local'); return; }
+  try { Store.col = db.collection('data/users/' + id); } catch { setSync('local'); return; }
+  Store.mode = 'cloud';
+  Store.col.onSnapshot(snap => {
+    if (snap.metadata.hasPendingWrites) return;
+    const map = {};
+    snap.docs.forEach(d => { if (d.exists) map[d.id] = d.data(); });
+    if (!Store.loaded) {
+      if (snap.empty && snap.metadata.fromCache) return;
+      Store.loaded = true;
+      if (map.meta) { applyRemote(map); setSync('cloud'); }
+      else { Store.lastSaved = {}; flush(); }
+      return;
+    }
+    if (Store.dirty || Store.saving) return;
+    let changed = false;
+    for (const k in map) if (Store.lastSaved[k] !== JSON.stringify(map[k])) { changed = true; break; }
+    if (changed) applyRemote(map);
+  }, err => { console.warn(err); setSync('error'); });
+}
+
+/* ================= Backgrounds ================= */
+const bgUrl = b => b.asset ? '/_blob/' + b.asset
+  : b.gh ? (urlCache['gh:' + b.gh] || null)
+  : (b.local && urlCache[b.local]) || null;
+async function loadLocalImages() {
+  for (const b of state.backgrounds) {
+    if (b.local && !urlCache[b.local]) {
+      try { const blob = await IDB.get(b.local); if (blob) urlCache[b.local] = URL.createObjectURL(blob); } catch {}
+    }
+    if (b.gh) await ghLoadPhoto(b);
+  }
+  renderBg(); renderHeroRight();
+  if (dlg.open && dlg.dataset.kind === 'settings' && ui.sTab === 'photos') renderSettings();
+}
+function currentBg() {
+  const avail = state.backgrounds.filter(b => bgUrl(b));
+  if (!avail.length) return null;
+  const m = ui.cursor.getMonth();
+  const spec = avail.filter(b => (b.months || []).includes(m));
+  const pool = spec.length ? spec : avail.filter(b => !(b.months || []).length);
+  if (!pool.length) return null;
+  return state.settings.bgRotate === 'daily' ? pool[dayOfYear(new Date()) % pool.length] : pool[0];
+}
+let bgOn = 'A', bgKey = null;
+function renderBg() {
+  const b = currentBg();
+  const key = b ? b.id : 'none';
+  const cur = $('#bg' + bgOn);
+  if (key === bgKey) { if (b) cur.style.backgroundPosition = `50% ${b.pos ?? 50}%`; return; }
+  bgKey = key;
+  if (!b) { cur.classList.remove('on'); return; }
+  const next = bgOn === 'A' ? 'B' : 'A'; const el = $('#bg' + next); const url = bgUrl(b);
+  el.style.backgroundImage = `url("${url}")`;
+  el.style.backgroundPosition = `50% ${b.pos ?? 50}%`;
+  const img = new Image();
+  img.onload = () => { if (bgKey !== key) return; el.classList.add('on'); cur.classList.remove('on'); bgOn = next; };
+  img.src = url;
+}
+async function compressImage(file) {
+  try {
+    const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
+    const scale = Math.min(1, 2400 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement('canvas');
+    c.width = Math.round(bmp.width * scale); c.height = Math.round(bmp.height * scale);
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+    const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.86));
+    return blob || file;
+  } catch { return file; }
+}
+async function uploadImages(files) {
+  if (!files.length) return;
+  toast(files.length > 1 ? `Adding ${files.length} photos…` : 'Adding photo…');
+  let added = 0;
+  for (const f of files) {
+    const blob = await compressImage(f);
+    const b = { id: nid(), months: [], pos: 50 };
+    try {
+      if (Store.assets) {
+        const r = await Store.assets.upload(blob, { type: blob.type && blob.type.startsWith('image/') ? blob.type : 'image/jpeg' });
+        b.asset = r.id;
+      } else if (Store.mode === 'github') {
+        try { const up = await ghUploadPhoto(blob); b.gh = up.path; b.ghSha = up.sha; }
+        catch (upErr) {
+          console.warn(upErr);
+          b.local = b.id; await IDB.put(b.local, blob); urlCache[b.local] = URL.createObjectURL(blob);
+          toast('Photo saved on this device only, because GitHub didn’t accept the upload.');
+        }
+      } else {
+        b.local = b.id; await IDB.put(b.local, blob); urlCache[b.local] = URL.createObjectURL(blob);
+      }
+      state.backgrounds.push(b); added++;
+    } catch (err) {
+      console.warn(err);
+      toast(err && err.code === 'quota_exceeded' ? 'Photo storage is full. Remove a photo and try again.' : 'That photo couldn’t be saved. Try a JPG or PNG under 20 MB.');
+    }
+  }
+  if (added) {
+    bgKey = null; commit();
+    if (dlg.open && dlg.dataset.kind === 'settings') renderSettings();
+    toast(added > 1 ? `${added} photos added` : 'Photo added');
+  }
+}
+
+/* ================= Rendering ================= */
+const app = $('#app'), dlg = $('#dlg'), pop = $('#pop');
+
+function applyLook() {
+  const s = state.settings;
+  if (s.theme === 'auto') document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.dataset.theme = s.theme;
+  app.dataset.hero = s.heroSize;
+  app.style.setProperty('--ov', (Math.max(0, Math.min(90, +s.overlay || 0)) / 100).toFixed(2));
+}
+
+function renderHero() {
+  const s = state.settings, c = ui.cursor;
+  $('#brandName').textContent = s.owner || '';
+  $('#brandTitle').textContent = s.title || 'Calendar';
+  document.title = `${s.owner ? s.owner + ' ' : ''}${s.title || 'Calendar'}`;
+  let a, b;
+  if (ui.view === 'year') { a = 'The year'; b = c.getFullYear(); }
+  else if (ui.view === 'month') { a = MONTHS[c.getMonth()]; b = c.getFullYear(); }
+  else if (ui.view === 'week') {
+    const st = startOfWeek(c), en = addDays(st, 6);
+    a = `Week ${isoWeek(st)}`;
+    b = st.getMonth() === en.getMonth() ? `${st.getDate()} – ${en.getDate()} ${MON[en.getMonth()]}` : `${st.getDate()} ${MON[st.getMonth()]} – ${en.getDate()} ${MON[en.getMonth()]}`;
+  } else { a = DAYS[c.getDay()]; b = `${c.getDate()} ${MONTHS[c.getMonth()]}`; }
+  $('#heroTitle').innerHTML = `<span>${esc(a)}</span> <em>${esc(b)}</em>`;
+  $$('.views button').forEach(x => x.setAttribute('aria-selected', String(x.dataset.view === ui.view)));
+
+  const now = new Date(), doy = dayOfYear(now), diy = daysInYear(now.getFullYear()), t = todayISO();
+  $('#yearFill').style.width = (doy / diy * 100).toFixed(2) + '%';
+  const open = state.entries.filter(e => isTask(e) && !isRepeat(e) && !e.done).length;
+  const overdue = state.entries.filter(e => isTask(e) && !isRepeat(e) && !e.done && e.date && (e.endDate || e.date) < t).length;
+  const todayN = entriesOn(t).filter(e => isTask(e) && !isDone(e, t)).length;
+  $('#heroStats').innerHTML = `<span>Day ${doy} of ${diy}</span><span>${todayN} to do today</span><span>${open} open</span>${overdue ? `<span class="warn">${overdue} overdue</span>` : ''}`;
+  tick(true);
+  renderHeroRight();
+}
+function renderHeroRight() {
+  const el = $('#heroRight'); if (!el) return;
+  const msg = {
+    local: 'Saved in this browser', cloud: 'Synced to your account', gh: 'Synced to GitHub', offline: 'Offline. Changes will sync when you reconnect.', auth: 'GitHub token stopped working. Reconnect in Customize, Data.', denied: 'GitHub refused to save. Check the token’s repo access.', saving: 'Saving…', connecting: 'Connecting…',
+    error: 'Sync paused. Changes are kept in this browser.', full: 'Storage is full. Export a backup, then remove old entries.'
+  }[Store.status] || '';
+  const noPhoto = !state.backgrounds.some(b => bgUrl(b));
+  const needSync = Store.mode === 'local' && !window.claude, fixSync = ['auth', 'denied'].includes(Store.status);
+  el.innerHTML = `${noPhoto ? '<button type="button" data-action="backgrounds">Add a background photo</button>' : ''}${needSync || fixSync ? `<button type="button" data-action="syncSetup">${fixSync ? 'Fix sync' : 'Set up sync'}</button>` : ''}<span>${esc(msg)}</span>`;
+}
+function tick(force) {
+  const n = new Date(), s = state.settings;
+  let h = n.getHours(); const m = n.getMinutes(), sec = n.getSeconds();
+  let t;
+  if (s.clock24) t = `${pad(h)}:${pad(m)}${s.showSeconds ? ':' + pad(sec) : ''}`;
+  else { const ap = h >= 12 ? 'pm' : 'am'; h = h % 12 || 12; t = `${h}:${pad(m)}${s.showSeconds ? ':' + pad(sec) : ''} ${ap}`; }
+  const meta = $('#heroMeta');
+  const line = `${DAYS[n.getDay()]} ${n.getDate()} ${MONTHS[n.getMonth()]} ${n.getFullYear()}, `;
+  if (force || !meta.firstChild) meta.innerHTML = `${esc(line)}<span class="clock" id="clock"></span>`;
+  $('#clock').textContent = t;
+  if (force) return;
+  const iso = toISO(n);
+  if (iso !== ui.lastDay) { ui.lastDay = iso; renderAll(); return; }
+  if (m !== ui.lastMin) { ui.lastMin = m; if (ui.view === 'day' || ui.view === 'week') renderView(); }
+}
+
+function renderView() {
+  const v = $('#view');
+  v.dataset.view = ui.view;
+  v.innerHTML = ui.view === 'year' ? renderYear() : ui.view === 'week' ? renderWeek() : ui.view === 'day' ? renderDay() : renderMonth();
+}
+
+function chipHTML(e, d) {
+  const c = cat(e.cat), done = isTask(e) && isDone(e, d);
+  const tl = e.time ? fmtTime(e.time) : '';
+  return `<li class="chip ${done ? 'done' : ''} ${isTask(e) ? '' : 'ev'}" data-action="edit" data-id="${e.id}" style="--c:${c?.color || '#888'}" title="${esc(e.title)}"><i></i>${tl ? `<span class="tm">${esc(tl)}</span>` : ''}<span class="tx">${esc(e.title)}</span></li>`;
+}
+
+function renderMonth() {
+  const y = ui.cursor.getFullYear(), m = ui.cursor.getMonth(), ws = +state.settings.weekStart;
+  const first = new Date(y, m, 1), off = (first.getDay() - ws + 7) % 7, start = addDays(first, -off);
+  const dim = new Date(y, m + 1, 0).getDate(), weeks = Math.ceil((off + dim) / 7), today = todayISO();
+  let head = '';
+  for (let i = 0; i < 7; i++) head += `<div>${DAYS[(ws + i) % 7].slice(0, 3)}</div>`;
+  const narrow = matchMedia('(max-width:760px)').matches, stacked = matchMedia('(max-width:980px)').matches;
+  const projOn = state.settings.showProjects && state.projects.some(p => p.show !== false);
+  let maxChips = narrow ? 6 : 3;
+  if (!stacked) {
+    const rowH = Math.max(96, ($('#view').clientHeight - 80) / weeks);
+    maxChips = Math.max(1, Math.floor((rowH - 62 - (projOn ? 19 : 0)) / 19));
+  }
+  let cells = '';
+  for (let i = 0; i < weeks * 7; i++) {
+    const dt = addDays(start, i), d = toISO(dt);
+    const es = entriesOn(d), lim = es.length === maxChips + 1 ? es.length : maxChips;
+    const hl = state.highlights[d], hs = hl && hlStyle(hl.style);
+    const ps = state.settings.showProjects ? state.projects.filter(p => p.show !== false && p.start && p.start <= d && (p.end || p.start) >= d).slice(0, 2) : [];
+    const cls = ['cell', dt.getMonth() !== m ? 'out' : '', d === today ? 'today' : '', d === ui.selected ? 'sel' : '', hs ? 'hl' : ''].join(' ');
+    const label = `${fmtLong(d)}${hs ? ', ' + hs.name : ''}${es.length ? `, ${es.length} ${es.length === 1 ? 'entry' : 'entries'}` : ''}`;
+    cells += `<div class="${cls}" role="gridcell" tabindex="0" data-date="${d}" data-cell data-hlt aria-label="${esc(label)}" ${hs ? `style="--hl:${hs.color}"` : ''}>
+      <div class="cell-top"><span class="dnum">${dt.getDate()}</span>${hs ? `<span class="hl-note">${esc(hl.note || hs.name)}</span>` : ''}</div>
+      ${state.settings.showWeekNums && i % 7 === 0 ? `<span class="wk">W${isoWeek(dt)}</span>` : ''}
+      ${es.length ? `<ul class="chips">${es.slice(0, lim).map(e => chipHTML(e, d)).join('')}</ul>` : ''}
+      ${es.length > lim ? `<div class="more">+${es.length - lim} more</div>` : ''}
+      ${ps.length ? `<div class="pbs">${ps.map(p => `<div class="pb" style="--c:${p.color}" data-action="editProject" data-id="${p.id}"><span>${p.start === d || i % 7 === 0 ? esc(p.name) : '&nbsp;'}</span></div>`).join('')}</div>` : ''}
+    </div>`;
+  }
+  return `<div class="month"><div class="wdrow" aria-hidden="true">${head}</div><div class="grid" role="grid" aria-label="${MONTHS[m]} ${y}">${cells}</div></div>`;
+}
+
+function renderYear() {
+  const y = ui.cursor.getFullYear(), ws = +state.settings.weekStart, today = todayISO();
+  const has = new Set();
+  const from = `${y}-01-01`, to = `${y}-12-31`;
+  for (const e of state.entries) {
+    if (!e.date || e.date > to) continue;
+    if (!isRepeat(e) && !e.endDate) { if (e.date >= from) has.add(e.date); continue; }
+    if (e.repeat === 'daily' || e.repeat === 'weekdays') continue;
+    for (let d = fromISO(e.date < from ? from : e.date); toISO(d) <= to; d = addDays(d, 1)) {
+      const iso = toISO(d);
+      if (!isRepeat(e) && iso > e.endDate) break;
+      if (occursOn(e, iso)) has.add(iso);
+    }
+  }
+  let out = '';
+  for (let m = 0; m < 12; m++) {
+    const first = new Date(y, m, 1), off = (first.getDay() - ws + 7) % 7, dim = new Date(y, m + 1, 0).getDate();
+    let g = '';
+    for (let i = 0; i < 7; i++) g += `<div class="wdi">${DAYS[(ws + i) % 7][0]}</div>`;
+    for (let i = 0; i < off; i++) g += '<div></div>';
+    for (let d = 1; d <= dim; d++) {
+      const iso = `${y}-${pad(m + 1)}-${pad(d)}`, hl = state.highlights[iso], hs = hl && hlStyle(hl.style);
+      const cls = ['yd', hs ? 'hl' : '', has.has(iso) ? 'has' : '', iso === today ? 'today' : '', iso === ui.selected ? 'sel' : ''].join(' ');
+      g += `<button type="button" class="${cls}" data-action="pickDay" data-date="${iso}" data-hlt ${hs ? `style="--hl:${hs.color}" title="${esc(hl.note || hs.name)}"` : ''} aria-label="${esc(fmtLong(iso))}">${d}</button>`;
+    }
+    out += `<div class="ym"><button type="button" class="ym-name" data-action="goMonth" data-m="${m}">${MONTHS[m]}</button><div class="ym-grid">${g}</div></div>`;
+  }
+  return `<div class="year">${out}</div>`;
+}
+
+function blkHTML(e, d) {
+  const c = cat(e.cat), done = isTask(e) && isDone(e, d);
+  return `<div class="blk ${done ? 'done' : ''}" style="--c:${c?.color || '#888'}">
+    ${isTask(e) ? checkHTML(e, d) : ''}
+    <button type="button" class="row-main" data-action="edit" data-id="${e.id}">${e.time ? `<span class="tm">${esc(timeLabel(e))}</span>` : ''}<span class="tx">${esc(e.title)}</span></button></div>`;
+}
+
+function renderWeek() {
+  const st = startOfWeek(ui.cursor), today = todayISO(), now = new Date(), nowT = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  const days = [...Array(7)].map((_, i) => toISO(addDays(st, i)));
+  const tabs = tabsSorted();
+  const rows = [{ id: '', name: 'Anytime', start: '', end: '' }, ...tabs];
+  const byDay = Object.fromEntries(days.map(d => [d, entriesOn(d)]));
+  let h = '<div class="wk-h" aria-hidden="true"></div>';
+  for (const d of days) {
+    const dt = fromISO(d), hl = state.highlights[d], hs = hl && hlStyle(hl.style);
+    h += `<button type="button" class="wk-h ${d === today ? 'today' : ''} ${hs ? 'hl' : ''}" data-action="pickDay" data-date="${d}" data-hlt ${hs ? `style="--hl:${hs.color}" title="${esc(hl.note || hs.name)}"` : ''}><small>${DAYS[dt.getDay()].slice(0, 3)}${hs ? ', ' + esc(hl.note || hs.name) : ''}</small><b>${dt.getDate()}</b></button>`;
+  }
+  let body = '';
+  for (const r of rows) {
+    body += `<div class="wk-l"><b>${esc(r.name)}</b><span>${r.start ? `${fmtTime(r.start)} – ${fmtTime(r.end)}` : 'No set time'}</span></div>`;
+    for (const d of days) {
+      const items = byDay[d].filter(e => (entryTab(e)?.id || '') === r.id);
+      const isNow = d === today && r.start && nowT >= r.start && nowT < (r.end || '24:00');
+      const hl = state.highlights[d], hs = hl && hlStyle(hl.style);
+      body += `<div class="wk-c ${isNow ? 'now' : ''} ${hs ? 'hl' : ''}" ${hs ? `style="--hl:${hs.color}"` : ''} data-action="addAt" data-date="${d}" data-tab="${r.id}" title="Add to ${esc(r.name)}, ${esc(fmtLong(d))}">${items.map(e => blkHTML(e, d)).join('')}</div>`;
+    }
+  }
+  return `<div class="week-wrap"><div class="week">${h}${body}</div></div>`;
+}
+
+function renderDay() {
+  const d = toISO(ui.cursor), es = entriesOn(d), today = todayISO();
+  const now = new Date(), nowT = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  const hl = state.highlights[d], hs = hl && hlStyle(hl.style);
+  const groups = [{ id: '', name: 'Anytime', items: es.filter(e => !entryTab(e)) },
+    ...tabsSorted().map(t => ({ ...t, items: es.filter(e => entryTab(e)?.id === t.id) }))];
+  let out = hs ? `<div class="banner" style="--c:${hs.color}"><span class="sw" style="--c:${hs.color}"></span><span>${esc(hs.name)}${hl.note ? ': ' + esc(hl.note) : ''}</span><span class="grow"></span><button type="button" class="link small" data-action="highlight" data-date="${d}">Change</button></div>` : '';
+  for (const g of groups) {
+    const isNow = d === today && g.start && nowT >= g.start && nowT < (g.end || '24:00');
+    let pct = 0;
+    if (isNow) {
+      const mins = s => { const [a, b] = s.split(':').map(Number); return a * 60 + b; };
+      pct = Math.round((mins(nowT) - mins(g.start)) / Math.max(1, mins(g.end || '24:00') - mins(g.start)) * 100);
+    }
+    out += `<section class="dsec ${isNow ? 'now' : ''}">
+      <header><h3>${esc(g.name)}</h3><span class="range">${g.start ? `${fmtTime(g.start)} – ${fmtTime(g.end)}` : 'No set time'}</span>${isNow ? `<span class="nowbar"><i style="width:${pct}%"></i></span>` : ''}</header>
+      <div>${g.items.length ? `<ul class="list tight">${g.items.map(e => rowHTML(e, d)).join('')}</ul>` : ''}
+      <button type="button" class="link small" data-action="addAt" data-date="${d}" data-tab="${g.id}">Add to ${esc(g.name.toLowerCase())}</button></div>
+    </section>`;
+  }
+  return `<div class="day">${out}</div>`;
+}
+
+function checkHTML(e, d) {
+  const done = isDone(e, d), c = cat(e.cat);
+  return `<button type="button" class="check ${done ? 'on' : ''}" style="--c:${c?.color || 'var(--graphite)'}" data-action="toggle" data-id="${e.id}" data-date="${d || ''}" aria-pressed="${done}" aria-label="${done ? 'Mark not done' : 'Mark done'}: ${esc(e.title)}">${I.check}</button>`;
+}
+function rowHTML(e, d, opts = {}) {
+  const c = cat(e.cat), p = proj(e.project), done = isTask(e) && isDone(e, d);
+  const meta = [];
+  if (opts.showDate) meta.push(`<span>${e.date ? esc(fmtShort(e.date)) + (e.endDate ? ' – ' + esc(fmtShort(e.endDate)) : '') : 'No date'}</span>`);
+  const tl = timeLabel(e); if (tl) meta.push(`<span>${esc(tl)}</span>`);
+  if (c) meta.push(`<span>${esc(c.name)}</span>`);
+  if (p && !opts.hideProject) meta.push(`<span class="pj" style="--c:${p.color}">${esc(p.name)}</span>`);
+  if (isRepeat(e)) meta.push(`<span>Repeats ${esc(repeatLabel(e.repeat).toLowerCase())}</span>`);
+  return `<li class="row ${done ? 'done' : ''}">
+    ${isTask(e) ? checkHTML(e, d) : `<span class="dot" style="--c:${c?.color || '#888'}" title="Event"></span>`}
+    <button type="button" class="row-main" data-action="edit" data-id="${e.id}"><span class="row-title">${esc(e.title)}</span>${meta.length ? `<span class="row-meta">${meta.join('')}</span>` : ''}</button></li>`;
+}
+const REPEATS = [['none', 'Does not repeat'], ['daily', 'Daily'], ['weekdays', 'Every weekday'], ['weekly', 'Weekly'], ['biweekly', 'Every 2 weeks'], ['monthly', 'Monthly'], ['yearly', 'Yearly']];
+const repeatLabel = r => (REPEATS.find(x => x[0] === r) || REPEATS[0])[1];
+
+/* ---------- Side panel ---------- */
+function renderPanel() {
+  const t = todayISO();
+  const overdue = state.entries.filter(e => isTask(e) && !isRepeat(e) && !e.done && e.date && (e.endDate || e.date) < t).length;
+  const tabs = [['day', 'Day'], ['todo', 'To-do'], ['projects', 'Projects']];
+  let html = `<div class="ptabs" role="tablist">${tabs.map(([k, l]) => `<button type="button" role="tab" data-action="panel" data-panel="${k}" aria-selected="${ui.panel === k}">${l}${k === 'todo' && overdue ? `<sup>${overdue}</sup>` : ''}</button>`).join('')}</div>`;
+  html += ui.panel === 'todo' ? panelTodo() : ui.panel === 'projects' ? panelProjects() : panelDay();
+  $('#panel').innerHTML = html;
+}
+function panelDay() {
+  const d = ui.selected, dt = fromISO(d), es = entriesOn(d);
+  const hl = state.highlights[d], hs = hl && hlStyle(hl.style);
+  const tabs = tabsSorted();
+  return `<div class="p-head"><h2>${DAYS[dt.getDay()]} <em>${dt.getDate()} ${MONTHS[dt.getMonth()]}</em></h2></div>
+    <div class="p-links">
+      <button type="button" class="link small" data-action="highlight" data-date="${d}">${hs ? 'Change highlight' : 'Highlight this day'}</button>
+      ${ui.view !== 'day' ? `<button type="button" class="link small" data-action="openDay" data-date="${d}">Open day view</button>` : ''}
+    </div>
+    ${hs ? `<div class="banner" style="--c:${hs.color};margin:16px 0 0"><span class="sw" style="--c:${hs.color}"></span><span>${esc(hs.name)}${hl.note ? ': ' + esc(hl.note) : ''}</span></div>` : ''}
+    <form class="quick" data-quick="day"><input name="q" placeholder="Add a task for ${DAYS[dt.getDay()]}" aria-label="Quick add task" autocomplete="off" enterkeyhint="done"><button type="submit" class="circle" aria-label="Add">${I.plus}</button></form>
+    <div class="chipset" aria-label="Time tab for quick add">${tabs.map(t => `<button type="button" class="chip-btn" data-action="quickTab" data-tab="${t.id}" aria-pressed="${ui.quickTab === t.id}">${esc(t.name)}</button>`).join('')}</div>
+    ${es.length ? `<ul class="list">${es.map(e => rowHTML(e, d)).join('')}</ul>`
+      : `<p class="empty"><em>A clear day.</em>Type above to add a task, or use New entry for events, times and projects. Right-click or long-press any date to highlight it.</p>`}
+    <button type="button" class="link small" data-action="new" data-date="${d}">New entry with details</button>`;
+}
+function todoGroups(f) {
+  const t = todayISO();
+  const nonRep = state.entries.filter(e => isTask(e) && !isRepeat(e));
+  const byDate = (a, b) => (a.date || '9999').localeCompare(b.date || '9999') || byTime(a, b);
+  switch (f) {
+    case 'today': {
+      const items = entriesOn(t).filter(isTask).sort((a, b) => isDone(a, t) - isDone(b, t)).map(e => ({ e, d: t }));
+      return [{ h: '', items }];
+    }
+    case 'week': {
+      const g = [];
+      for (let i = 0; i < 7; i++) {
+        const d = toISO(addDays(new Date(), i));
+        const items = entriesOn(d).filter(isTask).filter(e => !isDone(e, d)).map(e => ({ e, d }));
+        if (items.length) g.push({ h: i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : fmtLong(d), items });
+      }
+      return g;
+    }
+    case 'overdue': return [{ h: '', items: nonRep.filter(e => !e.done && e.date && (e.endDate || e.date) < t).sort(byDate).map(e => ({ e, d: e.date })) }];
+    case 'nodate': return [{ h: '', items: nonRep.filter(e => !e.date).sort((a, b) => a.done - b.done || (a.created || 0) - (b.created || 0)).map(e => ({ e, d: '' })) }];
+    case 'open': {
+      const g = [{ h: '', items: nonRep.filter(e => !e.done).sort(byDate).map(e => ({ e, d: e.date })) }];
+      const rep = state.entries.filter(e => isTask(e) && isRepeat(e) && (!e.until || e.until >= t));
+      if (rep.length) g.push({ h: 'Repeating', items: rep.map(e => ({ e, d: t })) });
+      return g;
+    }
+    case 'done': return [{ h: '', items: nonRep.filter(e => e.done).sort((a, b) => byDate(b, a)).slice(0, 150).map(e => ({ e, d: e.date })) }];
+  }
+  return [];
+}
+function panelTodo() {
+  const f = ui.todo;
+  const filters = [['today', 'Today'], ['week', 'Next 7 days'], ['overdue', 'Overdue'], ['nodate', 'No date'], ['open', 'All open'], ['done', 'Done']];
+  const groups = todoGroups(f), total = groups.reduce((n, g) => n + g.items.length, 0);
+  const place = ['nodate', 'open', 'done'].includes(f) ? 'Add a to-do with no date' : 'Add a to-do for today';
+  const emptyMsg = {
+    today: ['Nothing due today.', 'Add a to-do above, or tick things off as they arrive.'],
+    week: ['The week ahead is clear.', 'Dated tasks for the next seven days gather here.'],
+    overdue: ['Nothing overdue.', 'Tasks whose date has passed without a tick show up here.'],
+    nodate: ['No loose ends.', 'Undated to-dos live here until you give them a day.'],
+    open: ['Everything is done.', 'Every unticked task, dated or not, is listed here.'],
+    done: ['Nothing ticked off yet.', 'Completed tasks are kept here for reference.']
+  }[f];
+  return `<div class="filters" role="group" aria-label="Filter">${filters.map(([k, l]) => `<button type="button" class="chip-btn" data-action="todo" data-f="${k}" aria-pressed="${f === k}">${l}</button>`).join('')}</div>
+    ${f !== 'done' ? `<form class="quick" data-quick="todo"><input name="q" placeholder="${place}" aria-label="${place}" autocomplete="off" enterkeyhint="done"><button type="submit" class="circle" aria-label="Add">${I.plus}</button></form>` : ''}
+    ${total ? groups.filter(g => g.items.length).map(g => `${g.h ? `<h3 class="group-h">${esc(g.h)}</h3>` : ''}<ul class="list">${g.items.map(({ e, d }) => rowHTML(e, d, { showDate: f !== 'today' && f !== 'week' })).join('')}</ul>`).join('')
+      : `<p class="empty"><em>${emptyMsg[0]}</em>${emptyMsg[1]}</p>`}`;
+}
+const STATUS = [['planned', 'Planned'], ['active', 'Active'], ['hold', 'On hold'], ['done', 'Done']];
+function panelProjects() {
+  const order = { active: 0, planned: 1, hold: 2, done: 3 };
+  const ps = [...state.projects].sort((a, b) => (order[a.status] ?? 9) - (order[b.status] ?? 9) || (a.end || '9').localeCompare(b.end || '9'));
+  const t = todayISO();
+  const rows = ps.map(p => {
+    const s = projectStats(p);
+    let left = '';
+    if (p.end && p.status !== 'done') {
+      const n = Math.round((fromISO(p.end) - fromISO(t)) / 864e5);
+      left = n < 0 ? `<span class="late">${-n} ${-n === 1 ? 'day' : 'days'} past end</span>` : n === 0 ? 'Ends today' : `${n} ${n === 1 ? 'day' : 'days'} left`;
+    }
+    return `<button type="button" class="proj" data-action="editProject" data-id="${p.id}" style="--c:${p.color}">
+      <span class="proj-top"><span class="proj-name">${esc(p.name)}</span><span class="status ${p.status}">${(STATUS.find(x => x[0] === p.status) || STATUS[1])[1]}</span></span>
+      <span class="proj-dates" style="display:block">${p.start ? esc(fmtShort(p.start)) : 'No start'}${p.end ? ' – ' + esc(fmtShort(p.end)) : ''}</span>
+      <span class="bar" style="display:block"><i style="width:${s.pct}%"></i></span>
+      <span class="proj-foot"><span>${p.mode === 'manual' ? `${s.pct}% complete` : `${s.done} of ${s.total} tasks, ${s.pct}%`}</span><span>${left}</span></span>
+    </button>`;
+  }).join('');
+  return `<div class="p-head"><h2>Projects</h2><button type="button" class="pill sm ink" data-action="newProject">New project</button></div>
+    ${rows || `<p class="empty"><em>No projects yet.</em>Give a project a start and end date, link tasks to it, and its progress fills in as you tick them off. It also shows as a line across your calendar.</p>`}`;
+}
+
+function renderAll() {
+  applyLook(); renderHero(); renderView(); renderPanel(); renderBg();
+}
+
+/* ================= Entry editor ================= */
+let draft = null;
+function blankEntry(o = {}) {
+  return { id: null, title: '', kind: o.kind || 'task', date: o.date ?? ui.selected, endDate: '', time: '', timeEnd: '', tab: o.tab || null, cat: state.categories[0]?.id || '', project: o.project || '', repeat: 'none', until: '', notes: '' };
+}
+function openEditor(o) {
+  closePop();
+  if (dlg.open && dlg.dataset.kind === 'project' && pdraft?.id) ui.back = { kind: 'project', id: pdraft.id }; else if (!dlg.open) ui.back = null;
+  const found = o.id && state.entries.find(e => e.id === o.id);
+  draft = found ? clone(found) : blankEntry(o);
+  ui.confirm = null;
+  dlg.className = ''; dlg.dataset.kind = 'entry';
+  renderEditor();
+  if (!dlg.open) dlg.showModal();
+  if (!found) setTimeout(() => $('#dlg [name=title]')?.focus(), 30);
+}
+function renderEditor() {
+  const e = draft, tabs = tabsSorted(), isEv = e.kind === 'event';
+  dlg.innerHTML = `<form id="entryForm" autocomplete="off" novalidate>
+  <div class="dlg-head"><h2>${e.id ? 'Edit' : 'New'} <em>${isEv ? 'event' : 'task'}</em></h2><button type="button" class="icon-btn" data-action="close" aria-label="Close">${I.x}</button></div>
+  <div class="dlg-body">
+    <input class="inp big" name="title" value="${esc(e.title)}" placeholder="${isEv ? 'What’s happening?' : 'What needs doing?'}" aria-label="Title">
+    <div class="field"><span>Type</span><div class="seg" role="group">
+      <button type="button" data-action="eKind" data-k="task" aria-pressed="${!isEv}">Task</button>
+      <button type="button" data-action="eKind" data-k="event" aria-pressed="${isEv}">Event</button></div>
+      <span class="hint" style="display:block;margin-top:6px">${isEv ? 'Events sit on the calendar without a checkbox.' : 'Tasks get a checkbox and appear in To-do.'}</span></div>
+    <div class="two">
+      <label class="field"><span>Date (leave empty for an undated to-do)</span><input class="inp" type="date" name="date" value="${esc(e.date || '')}"></label>
+      <label class="field"><span>Ends (optional, for multi-day)</span><input class="inp" type="date" name="endDate" value="${esc(e.endDate || '')}" ${e.date ? `min="${e.date}"` : 'disabled'}></label>
+    </div>
+    <div class="field"><span>Time tab</span><div class="chipset">
+      <button type="button" class="chip-btn" data-action="eTab" data-tab="" aria-pressed="${!e.tab}">None</button>
+      ${tabs.map(t => `<button type="button" class="chip-btn" data-action="eTab" data-tab="${t.id}" aria-pressed="${e.tab === t.id}">${esc(t.name)} <small>${fmtTime(t.start)}–${fmtTime(t.end)}</small></button>`).join('')}
+      <button type="button" class="chip-btn dashed" data-action="eNewTab" aria-expanded="${!!e._newTab}">${I.plus} Custom tab</button></div>
+      ${e._newTab ? `<div class="newtab"><input class="inp" data-nt="name" placeholder="Tab name, e.g. Deep work" aria-label="Tab name"><input class="inp" type="time" data-nt="start" value="08:00" aria-label="Starts"><input class="inp" type="time" data-nt="end" value="10:00" aria-label="Ends"><button type="button" class="pill sm ink" data-action="eAddTab">Add tab</button></div>` : ''}
+    </div>
+    <div class="two">
+      <label class="field"><span>Exact start (optional)</span><input class="inp" type="time" name="time" value="${esc(e.time || '')}"></label>
+      <label class="field"><span>Exact end</span><input class="inp" type="time" name="timeEnd" value="${esc(e.timeEnd || '')}"></label>
+    </div>
+    <div class="field"><span>Category</span><div class="chipset">
+      ${state.categories.map(c => `<button type="button" class="chip-btn" data-action="eCat" data-cat="${c.id}" aria-pressed="${e.cat === c.id}"><span class="sw" style="--c:${c.color}"></span>${esc(c.name)}</button>`).join('')}
+    </div></div>
+    <div class="two">
+      <label class="field"><span>Project</span><select class="inp" name="project"><option value="">No project</option>${state.projects.map(p => `<option value="${p.id}" ${e.project === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select></label>
+      <label class="field"><span>Repeats</span><select class="inp" name="repeat" ${e.date ? '' : 'disabled'}>${REPEATS.map(([v, l]) => `<option value="${v}" ${e.repeat === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+    </div>
+    ${isRepeat(e) && e.date ? `<label class="field"><span>Repeat until (optional)</span><input class="inp" type="date" name="until" value="${esc(e.until || '')}" min="${e.date}"></label>` : ''}
+    <label class="field"><span>Notes</span><textarea class="inp" name="notes" rows="3">${esc(e.notes || '')}</textarea></label>
+  </div>
+  <div class="dlg-foot">
+    ${e.id ? `<button type="button" class="link danger" data-action="eDelete">${ui.confirm === 'entry' ? 'Click again to delete' : `Delete ${isEv ? 'event' : 'task'}`}</button>` : ''}
+    <span class="grow"></span>
+    <button type="button" class="pill" data-action="close">Cancel</button>
+    <button type="submit" class="pill ink">Save ${isEv ? 'event' : 'task'}</button>
+  </div></form>`;
+}
+function saveEntry() {
+  const e = draft;
+  e.title = (e.title || '').trim();
+  if (!e.title) { $('#dlg [name=title]')?.focus(); toast('Add a title to save'); return; }
+  if (!e.date) { e.endDate = ''; e.repeat = 'none'; }
+  if (e.endDate && e.endDate <= e.date) e.endDate = '';
+  if (!isRepeat(e)) e.until = '';
+  delete e._newTab;
+  if (e.id) {
+    const i = state.entries.findIndex(x => x.id === e.id);
+    if (i >= 0) state.entries[i] = { ...state.entries[i], ...e };
+  } else {
+    Object.assign(e, { id: nid(), created: Date.now(), done: false, doneDates: [] });
+    state.entries.push(e);
+  }
+  if (e.date) ui.selected = e.date;
+  const label = e.kind === 'event' ? 'Event saved' : 'Task saved';
+  closeDialog(); commit(); toast(label);
+}
+function deleteEntry() {
+  if (ui.confirm !== 'entry') { ui.confirm = 'entry'; renderEditor(); return; }
+  const snapshot = clone(state.entries);
+  state.entries = state.entries.filter(x => x.id !== draft.id);
+  ui.confirm = null; closeDialog(); commit();
+  toast('Deleted', { label: 'Undo', fn: () => { state.entries = snapshot; commit(); } });
+}
+function toggleDone(id, d) {
+  const e = state.entries.find(x => x.id === id); if (!e) return;
+  if (isRepeat(e)) {
+    const day = d || todayISO();
+    e.doneDates = e.doneDates || [];
+    const i = e.doneDates.indexOf(day);
+    if (i >= 0) e.doneDates.splice(i, 1); else e.doneDates.push(day);
+    if (e.doneDates.length > 500) e.doneDates = e.doneDates.slice(-500);
+  } else e.done = !e.done;
+  commit();
+  if (dlg.open && dlg.dataset.kind === 'project') renderProject();
+}
+function quickAdd(form) {
+  const type = form.dataset.quick, input = form.q, title = input.value.trim();
+  if (!title) return;
+  const date = type === 'day' ? ui.selected : (['nodate', 'open'].includes(ui.todo) ? '' : todayISO());
+  state.entries.push({ ...blankEntry({ date, tab: type === 'day' ? ui.quickTab : null }), id: nid(), title, created: Date.now(), done: false, doneDates: [] });
+  commit();
+  $(`[data-quick="${type}"] input`)?.focus();
+}
+
+/* ================= Projects ================= */
+let pdraft = null;
+function openProject(id) {
+  closePop();
+  const p = id && proj(id);
+  pdraft = p ? clone(p) : { id: null, name: '', color: PALETTE[state.projects.length % PALETTE.length], start: ui.selected, end: '', status: 'active', notes: '', mode: 'auto', progress: 0, show: true };
+  ui.confirm = null;
+  dlg.className = ''; dlg.dataset.kind = 'project';
+  renderProject();
+  if (!dlg.open) dlg.showModal();
+  if (!p) setTimeout(() => $('#dlg [name=name]')?.focus(), 30);
+}
+function renderProject() {
+  const p = pdraft, saved = p.id && proj(p.id);
+  const linked = saved ? state.entries.filter(e => e.project === p.id).sort((a, b) => (a.done - b.done) || (a.date || '9').localeCompare(b.date || '9')) : [];
+  const s = saved ? projectStats({ ...p }) : { pct: 0, total: 0, done: 0 };
+  dlg.innerHTML = `<form id="projForm" autocomplete="off" novalidate>
+  <div class="dlg-head"><h2>${p.id ? 'Edit' : 'New'} <em>project</em></h2><button type="button" class="icon-btn" data-action="close" aria-label="Close">${I.x}</button></div>
+  <div class="dlg-body">
+    <input class="inp big" name="name" value="${esc(p.name)}" placeholder="Project name" aria-label="Project name">
+    <div class="two">
+      <label class="field"><span>Starts</span><input class="inp" type="date" name="start" value="${esc(p.start || '')}"></label>
+      <label class="field"><span>Ends</span><input class="inp" type="date" name="end" value="${esc(p.end || '')}" ${p.start ? `min="${p.start}"` : ''}></label>
+    </div>
+    <div class="field"><span>Status</span><div class="seg" role="group">${STATUS.map(([v, l]) => `<button type="button" data-action="pSeg" data-key="status" data-val="${v}" aria-pressed="${p.status === v}">${l}</button>`).join('')}</div></div>
+    ${saved ? `<div class="p-head"><h2 style="font-size:24px">Tasks <em>${s.done} of ${s.total}</em></h2></div>
+      <div class="quick" style="margin-top:10px"><input data-pt="title" placeholder="Add a task to this project" aria-label="New project task"><input class="inp" type="date" data-pt="date" value="${esc(todayISO())}" style="width:150px;border:0" aria-label="Task date"><button type="button" class="circle" data-action="pAddTask" aria-label="Add task">${I.plus}</button></div>
+      ${linked.length ? `<ul class="list">${linked.map(e => rowHTML(e, isRepeat(e) ? todayISO() : e.date, { showDate: true, hideProject: true })).join('')}</ul>` : '<p class="hint">No tasks linked yet. Add them here, or pick this project when editing any entry.</p>'}<hr>` : ''}
+    <div class="field"><span>Colour</span><div class="palette">${PALETTE.map(c => `<button type="button" data-action="pColor" data-c="${c}" style="--c:${c}" aria-pressed="${p.color.toLowerCase() === c.toLowerCase()}" aria-label="Colour ${c}"></button>`).join('')}<input type="color" name="color" value="${esc(p.color)}" aria-label="Custom colour"></div></div>
+    <div class="field"><span>Progress</span><div class="seg" role="group">
+      <button type="button" data-action="pSeg" data-key="mode" data-val="auto" aria-pressed="${p.mode !== 'manual'}">From ticked tasks</button>
+      <button type="button" data-action="pSeg" data-key="mode" data-val="manual" aria-pressed="${p.mode === 'manual'}">Set by hand</button></div>
+      ${p.mode === 'manual' ? `<div style="display:flex;gap:12px;align-items:center;margin-top:12px"><input type="range" name="progress" min="0" max="100" step="5" value="${+p.progress || 0}" aria-label="Progress"><span id="pval" style="min-width:42px;text-align:right">${+p.progress || 0}%</span></div>` : ''}
+    </div>
+    <div class="field"><span>On the calendar</span><div class="seg" role="group">
+      <button type="button" data-action="pSeg" data-key="show" data-val="true" aria-pressed="${p.show !== false}">Show as a line</button>
+      <button type="button" data-action="pSeg" data-key="show" data-val="false" aria-pressed="${p.show === false}">Hide</button></div></div>
+    <label class="field"><span>Notes</span><textarea class="inp" name="notes" rows="2">${esc(p.notes || '')}</textarea></label>
+    ${saved ? '' : '<p class="hint">Create the project, then add its tasks here.</p>'}
+  </div>
+  <div class="dlg-foot">
+    ${saved ? `<button type="button" class="link danger" data-action="pDelete">${ui.confirm === 'project' ? 'Click again to delete' : 'Delete project'}</button>` : ''}
+    <span class="grow"></span>
+    <button type="button" class="pill" data-action="close">${saved ? 'Close' : 'Cancel'}</button>
+    <button type="submit" class="pill ink">${saved ? 'Save changes' : 'Create project'}</button>
+  </div></form>`;
+}
+function saveProject(keepOpen) {
+  const p = pdraft; p.name = (p.name || '').trim();
+  if (!p.name) { $('#dlg [name=name]')?.focus(); toast('Name the project to save it'); return; }
+  if (p.end && p.start && p.end < p.start) p.end = p.start;
+  const isNew = !p.id;
+  if (isNew) { p.id = nid(); p.created = Date.now(); state.projects.push(clone(p)); }
+  else { const i = state.projects.findIndex(x => x.id === p.id); if (i >= 0) state.projects[i] = clone(p); }
+  commit();
+  if (isNew || keepOpen) { renderProject(); toast(isNew ? 'Project created. Add its tasks below.' : 'Project saved'); }
+  else { closeDialog(); toast('Project saved'); }
+}
+function persistProjectDraft() {
+  if (!pdraft?.id) return;
+  const i = state.projects.findIndex(x => x.id === pdraft.id);
+  if (i >= 0 && pdraft.name.trim()) state.projects[i] = clone(pdraft);
+}
+
+/* ================= Highlight popover ================= */
+function openHighlight(d, x, y) {
+  ui.hlDate = d;
+  const h = state.highlights[d];
+  pop.innerHTML = `<div class="pop-head"><strong>${esc(fmtLong(d))}</strong><button type="button" class="icon-btn" data-action="closePop" aria-label="Close">${I.x}</button></div>
+    <label class="field"><span>Note (optional)</span><input class="inp" id="hlNote" value="${esc(h?.note || '')}" placeholder="e.g. Office closed" autocomplete="off"></label>
+    <label class="field"><span>Apply through</span><input class="inp" type="date" id="hlThrough" value="${d}" min="${d}"></label>
+    <div class="lbl">Choose a highlight</div>
+    <div class="sw-list">${state.highlightStyles.map(s => `<button type="button" data-action="hlPick" data-style="${s.id}" aria-pressed="${h?.style === s.id}"><span class="sw" style="--c:${s.color}"></span>${esc(s.name)}</button>`).join('')}</div>
+    <div class="pop-foot">${h ? '<button type="button" class="link small" data-action="hlClear">Remove highlight</button>' : '<span></span>'}<button type="button" class="link small" data-action="hlStyles">Edit highlight types</button></div>`;
+  pop.hidden = false;
+  const w = pop.offsetWidth, hh = pop.offsetHeight;
+  let L = Math.min(x, innerWidth - w - 12), T = y;
+  if (T + hh > innerHeight - 12) T = Math.max(12, y - hh);
+  pop.style.left = Math.max(12, L) + 'px'; pop.style.top = Math.max(12, T) + 'px';
+}
+function closePop() { if (!pop.hidden) { pop.hidden = true; pop.innerHTML = ''; } }
+function hlRange() {
+  const from = ui.hlDate; let to = $('#hlThrough')?.value || from; if (to < from) to = from;
+  const out = []; for (let d = fromISO(from); toISO(d) <= to && out.length < 400; d = addDays(d, 1)) out.push(toISO(d));
+  return out;
+}
+function applyHighlight(style) {
+  const note = ($('#hlNote')?.value || '').trim(), days = hlRange();
+  for (const d of days) state.highlights[d] = { style, note };
+  closePop(); commit();
+  toast(days.length > 1 ? `${days.length} days highlighted` : 'Day highlighted');
+}
+
+/* ================= Settings ================= */
+function openSettings(tabKey) {
+  closePop();
+  ui.sTab = tabKey || ui.sTab || 'look'; ui.confirm = null;
+  dlg.className = 'wide'; dlg.dataset.kind = 'settings';
+  renderSettings();
+  if (!dlg.open) dlg.showModal();
+}
+function seg(key, opts, src = state.settings) {
+  return `<div class="seg" role="group">${opts.map(([v, l]) => `<button type="button" data-action="sSeg" data-key="${key}" data-val="${v}" aria-pressed="${String(src[key]) === String(v)}">${l}</button>`).join('')}</div>`;
+}
+function setrow(label, ctrl, hint) { return `<div class="setrow"><span>${label}${hint ? `<span class="hint">${hint}</span>` : ''}</span><div>${ctrl}</div></div>`; }
+function renderSettings() {
+  const tabs = [['look', 'Look'], ['photos', 'Photos'], ['categories', 'Categories'], ['tabs', 'Time tabs'], ['highlights', 'Highlights'], ['data', 'Data']];
+  const scroll = $('#dlg .dlg-body')?.scrollTop || 0;
+  dlg.innerHTML = `<div class="dlg-head"><h2>Customize <em>your calendar</em></h2><button type="button" class="icon-btn" data-action="close" aria-label="Close">${I.x}</button></div>
+    <div class="stabs" role="tablist">${tabs.map(([k, l]) => `<button type="button" role="tab" data-action="sTab" data-t="${k}" aria-selected="${ui.sTab === k}">${l}</button>`).join('')}</div>
+    <div class="dlg-body">${settingsBody()}</div>`;
+  const b = $('#dlg .dlg-body'); if (b) b.scrollTop = scroll;
+}
+function listRows(list, withColor) {
+  return state[list].map((c, i) => `<div class="lrow">
+    ${withColor ? `<input type="color" value="${esc(c.color)}" data-list="${list}" data-i="${i}" data-field="color" aria-label="Colour for ${esc(c.name)}">` : ''}
+    <input class="inp" value="${esc(c.name)}" data-list="${list}" data-i="${i}" data-field="name" aria-label="Name">
+    <button type="button" class="icon-btn" data-action="sDel" data-list="${list}" data-i="${i}" aria-label="Delete ${esc(c.name)}">${I.x}</button></div>`).join('');
+}
+function settingsBody() {
+  const s = state.settings;
+  switch (ui.sTab) {
+    case 'look': return [
+      setrow('Your name', `<input class="inp" data-set="owner" value="${esc(s.owner)}" placeholder="Name shown top left">`),
+      setrow('Calendar title', `<input class="inp" data-set="title" value="${esc(s.title)}" placeholder="Calendar">`, 'Shown in italics beside your name'),
+      setrow('Colour mode', seg('theme', [['auto', 'Match device'], ['light', 'Light'], ['dark', 'Dark']])),
+      setrow('Header', seg('heroSize', [['tall', 'Tall'], ['compact', 'Compact'], ['backdrop', 'Photo behind everything']])),
+      setrow('Photo shade', `<input type="range" min="0" max="85" value="${+s.overlay}" data-set="overlay" aria-label="Photo shade">`, 'Darkens the photo so the text stays readable'),
+      setrow('Week starts on', seg('weekStart', [['1', 'Monday'], ['0', 'Sunday'], ['6', 'Saturday']])),
+      setrow('Clock', seg('clock24', [['true', '24-hour'], ['false', '12-hour']]) + ' ' + seg('showSeconds', [['false', 'Minutes'], ['true', 'Seconds']])),
+      setrow('Open on', seg('defaultView', [['year', 'Year'], ['month', 'Month'], ['week', 'Week'], ['day', 'Day']])),
+      setrow('Projects on calendar', seg('showProjects', [['true', 'Show lines'], ['false', 'Hide']])),
+      setrow('Week numbers', seg('showWeekNums', [['false', 'Hide'], ['true', 'Show']]))
+    ].join('');
+    case 'photos': {
+      const where = Store.assets ? 'Photos are saved to your account and follow you across devices.' : Store.mode === 'github' ? 'Photos are saved in your GitHub data repo and follow you across devices.' : 'Photos are saved in this browser.';
+      const g = state.backgrounds.map((b, i) => {
+        const url = bgUrl(b);
+        return `<figure class="ph"><div class="ph-img" data-phimg="${i}" style="${url ? `background-image:url('${url}');` : ''}background-position:50% ${b.pos ?? 50}%">${url ? '' : '<span class="hint" style="display:grid;place-items:center;height:100%">Stored on another device</span>'}</div>
+          <figcaption>
+            <div class="lbl">Show in</div>
+            <div class="mgrid">${MON.map((m, mi) => `<button type="button" data-action="bgMonth" data-i="${i}" data-m="${mi}" aria-pressed="${(b.months || []).includes(mi)}">${m}</button>`).join('')}</div>
+            <span class="hint">${(b.months || []).length ? 'Only the selected months' : 'Every month (select months to limit it)'}</span>
+            <label class="field" style="margin:12px 0 8px"><span>Vertical position</span><input type="range" min="0" max="100" value="${b.pos ?? 50}" data-bgpos="${i}"></label>
+            <button type="button" class="link small danger" data-action="bgDel" data-i="${i}">Remove photo</button>
+          </figcaption></figure>`;
+      }).join('');
+      return `<div class="btnrow" style="align-items:center"><button type="button" class="pill ink" data-action="uploadBg">${I.plus} Upload photos</button><span class="hint">${where} Large photos are resized to 2400 px.</span></div>
+        ${setrow('When several photos fit', seg('bgRotate', [['fixed', 'Use the first'], ['daily', 'Change daily']]), 'A month-specific photo wins over an every-month photo')}
+        ${g ? `<div class="gallery">${g}</div>` : '<p class="empty"><em>No photos yet.</em>Upload a picture to replace the woven pattern in the header. Assign photos to months and the header changes as you move through the year.</p>'}`;
+    }
+    case 'categories': return `<p class="hint">Categories colour your entries. Deleting one leaves its entries in place, uncoloured.</p>${listRows('categories', true)}<div class="btnrow"><button type="button" class="link" data-action="sAdd" data-list="categories">Add category</button></div>`;
+    case 'tabs': return `<p class="hint">Time tabs split your day into named blocks. Pick one when adding an entry, and the Week and Day views are laid out by them. Entries with an exact time drop into the tab that contains it.</p>
+      ${tabsSorted().map(t => { const i = state.timeTabs.indexOf(t); return `<div class="lrow tabs">
+        <input class="inp" value="${esc(t.name)}" data-list="timeTabs" data-i="${i}" data-field="name" aria-label="Tab name">
+        <input class="inp" type="time" value="${esc(t.start)}" data-list="timeTabs" data-i="${i}" data-field="start" aria-label="Starts">
+        <input class="inp" type="time" value="${esc(t.end)}" data-list="timeTabs" data-i="${i}" data-field="end" aria-label="Ends">
+        <button type="button" class="icon-btn" data-action="sDel" data-list="timeTabs" data-i="${i}" aria-label="Delete ${esc(t.name)}">${I.x}</button></div>`; }).join('')}
+      <div class="btnrow"><button type="button" class="link" data-action="sAdd" data-list="timeTabs">Add time tab</button></div>`;
+    case 'highlights': return `<p class="hint">Right-click a date (or long-press on a phone) to highlight it. These are the types you can pick from. Deleting a type removes its highlights.</p>${listRows('highlightStyles', true)}<div class="btnrow"><button type="button" class="link" data-action="sAdd" data-list="highlightStyles">Add highlight type</button></div>`;
+    case 'data': {
+      const where = Store.mode === 'cloud' ? 'Your calendar is synced to your Claude account, so it matches on every device where you open this app.'
+        : Store.mode === 'github' ? `Your calendar syncs through your private GitHub repo <strong>${esc(GH.owner)}/${esc(GH.repo)}</strong>. Every change is saved as a commit, so the repo also keeps your full history.`
+        : 'Your calendar is saved in this browser only.';
+      const cfgOwner = CFG.githubOwner || '', cfgRepo = CFG.githubRepo || 'calendar-data';
+      const ghBlock = window.claude ? '' : Store.mode === 'github' ? `
+        <div class="btnrow"><button type="button" class="pill" data-action="ghSyncNow">Sync now</button><button type="button" class="link small" data-action="ghDisconnect">${ui.confirm === 'ghoff' ? 'Click again to disconnect this device' : 'Disconnect this device'}</button></div>
+        <p class="hint">Disconnecting removes the token from this browser only. Your data stays in GitHub.</p>` : `
+        <h3 class="group-h" style="margin-top:6px">Sync with GitHub</h3>
+        <p class="hint">Connect each device once to sync your laptop and phone. The README explains how to make the private repo and the token.</p>
+        <div class="two">
+          <label class="field"><span>GitHub username</span><input class="inp" id="ghOwner" value="${esc(cfgOwner)}" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+          <label class="field"><span>Private data repo</span><input class="inp" id="ghRepo" value="${esc(cfgRepo)}" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+        </div>
+        <label class="field"><span>Access token (starts with github_pat_)</span><input class="inp" id="ghToken" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your token"></label>
+        <div class="btnrow" style="align-items:center"><button type="button" class="pill ink" data-action="ghConnect">Connect GitHub</button><span class="hint" id="ghMsg" role="status"></span></div>
+        <p class="hint">The token is stored only in this browser and can only reach the one repo you gave it.</p><hr>`;
+      return `<p>${where}</p>${ghBlock}
+        <p class="hint">${plural(state.entries.length, 'entry', 'entries')}, ${plural(state.projects.length, 'project', 'projects')}, ${plural(Object.keys(state.highlights).length, 'highlighted day', 'highlighted days')}.</p>
+        <div class="btnrow"><button type="button" class="pill" data-action="export">Export backup</button><button type="button" class="pill" data-action="import">Import backup</button></div>
+        <p class="hint">Import restores a backup from this calendar. It also reads exports from your previous Season Tracker on a best-effort basis, adding its entries and flagged days to what you have now.</p>
+        <hr>
+        <button type="button" class="link danger" data-action="reset">${ui.confirm === 'reset' ? 'Click again to erase everything' : 'Erase all entries, projects and settings'}</button>
+        <p class="hint">Photos are kept. You’ll get a few seconds to undo.</p>`;
+    }
+  }
+  return '';
+}
+function parseSetting(key, v) {
+  if (v === 'true') return true; if (v === 'false') return false;
+  if (key === 'weekStart' || key === 'overlay') return +v;
+  return v;
+}
+
+/* ================= Import / export ================= */
+async function exportData() {
+  const data = JSON.stringify(state, null, 2), name = `calendar-backup-${todayISO()}.json`;
+  if (Store.downloads) {
+    try { await Store.downloads.save({ filename: name, data }); toast('Backup exported'); return; }
+    catch (err) { if (err && err.code === 'declined') return; }
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
+  a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  toast('Backup exported');
+}
+function importData(obj) {
+  if (obj && obj.v && Array.isArray(obj.entries)) {
+    const keepBg = state.backgrounds;
+    state = normalize(clone(obj));
+    if (!state.backgrounds.length) state.backgrounds = keepBg;
+    return `Backup restored: ${state.entries.length} entries`;
+  }
+  const dateRe = /^\d{4}-\d{2}-\d{2}$/;
+  const titleOf = it => it && typeof it === 'object' && (it.title || it.text || it.name || it.label || it.task || it.desc || it.description);
+  const catFor = name => {
+    if (!name) return state.categories[0]?.id || '';
+    const n = String(name).trim().toLowerCase();
+    let c = state.categories.find(x => x.id === n || x.name.toLowerCase() === n);
+    if (!c) { c = { id: nid(), name: n.charAt(0).toUpperCase() + n.slice(1), color: PALETTE[state.categories.length % PALETTE.length] }; state.categories.push(c); }
+    return c.id;
+  };
+  const normT = t => { const m = /^(\d{1,2}):(\d{2})/.exec(String(t || '')); return m ? `${pad(+m[1])}:${m[2]}` : ''; };
+  const entries = [], highlights = {};
+  const add = (d, it) => {
+    if (typeof it === 'string') it = { title: it };
+    const title = titleOf(it); if (!title) return;
+    const kind = /event|holiday|meeting/i.test(String(it.type || it.category || '')) ? 'event' : 'task';
+    entries.push({ ...blankEntry({ date: d, kind }), id: nid(), title: String(title).slice(0, 300), time: normT(it.time || it.start), cat: catFor(it.type || it.category || it.cat || it.tag), notes: String(it.notes || it.note || ''), done: !!(it.done || it.completed || it.checked || it.cleared), doneDates: [], created: Date.now() });
+  };
+  const walk = (node, depth) => {
+    if (depth > 7 || !node || typeof node !== 'object') return;
+    if (Array.isArray(node)) {
+      for (const n of node) {
+        const d = n && typeof n === 'object' && String(n.date || n.day || '').slice(0, 10);
+        if (d && dateRe.test(d) && titleOf(n)) add(d, n); else walk(n, depth + 1);
+      }
+      return;
+    }
+    for (const [k, v] of Object.entries(node)) {
+      if (dateRe.test(k)) {
+        if (Array.isArray(v)) v.forEach(it => add(k, it));
+        else if (v && typeof v === 'object' && titleOf(v)) add(k, v);
+        else if (v && typeof v === 'object' && Array.isArray(v.items || v.entries || v.tasks || v.logs)) (v.items || v.entries || v.tasks || v.logs).forEach(it => add(k, it));
+        else if (v) highlights[k] = { style: state.highlightStyles[0]?.id, note: typeof v === 'string' && !/^(#|rgb|true|1$)/i.test(v) ? v.slice(0, 80) : '' };
+      } else walk(v, depth + 1);
+    }
+  };
+  walk(obj, 0);
+  if (!entries.length && !Object.keys(highlights).length) throw new Error('nothing');
+  state.entries.push(...entries);
+  for (const k in highlights) if (!state.highlights[k]) state.highlights[k] = highlights[k];
+  return `Imported ${entries.length} entries and ${Object.keys(highlights).length} flagged days`;
+}
+
+/* ================= Toast & dialog helpers ================= */
+const toastEl = $('#toast'), toastPop = typeof toastEl.showPopover === 'function';
+if (toastPop) toastEl.setAttribute('popover', 'manual');
+function toast(msg, action) {
+  const t = toastEl;
+  if (toastPop) { try { if (t.matches(':popover-open')) t.hidePopover(); t.showPopover(); } catch {} }
+  t.innerHTML = `<span>${esc(msg)}</span>${action ? `<button type="button" data-action="toastAct">${esc(action.label)}</button>` : ''}`;
+  ui.toastAct = action?.fn || null;
+  t.classList.add('on');
+  clearTimeout(ui.tt); ui.tt = setTimeout(() => t.classList.remove('on'), action ? 6500 : 2400);
+}
+function closeDialog() {
+  const back = dlg.dataset.kind === 'entry' ? ui.back : null;
+  if (dlg.dataset.kind === 'project') persistProjectDraft();
+  ui.back = null; ui.confirm = null;
+  if (back && proj(back.id)) { openProject(back.id); return; }
+  if (dlg.open) dlg.close();
+  dlg.dataset.kind = ''; dlg.innerHTML = '';
+}
+dlg.addEventListener('cancel', ev => { ev.preventDefault(); closeDialog(); });
+dlg.addEventListener('click', ev => { if (ev.target === dlg) closeDialog(); });
+
+/* ================= Navigation ================= */
+function setView(v) {
+  ui.view = v; $('#view').scrollTop = 0;
+  if (v === 'day' || v === 'week') ui.cursor = fromISO(ui.selected);
+  if (v === 'month') ui.cursor = new Date(fromISO(ui.selected).getFullYear(), fromISO(ui.selected).getMonth(), 1);
+  renderAll();
+}
+function nav(dir) {
+  const c = ui.cursor; $('#view').scrollTop = 0;
+  if (ui.view === 'year') ui.cursor = new Date(c.getFullYear() + dir, c.getMonth(), 1);
+  else if (ui.view === 'month') ui.cursor = new Date(c.getFullYear(), c.getMonth() + dir, 1);
+  else if (ui.view === 'week') { ui.cursor = addDays(c, 7 * dir); ui.selected = toISO(addDays(fromISO(ui.selected), 7 * dir)); }
+  else { ui.cursor = addDays(c, dir); ui.selected = toISO(ui.cursor); }
+  renderAll();
+}
+function goToday() {
+  ui.selected = todayISO(); ui.cursor = new Date();
+  if (ui.view === 'month') ui.cursor = new Date(ui.cursor.getFullYear(), ui.cursor.getMonth(), 1);
+  renderAll();
+}
+function selectDate(d) {
+  ui.selected = d; ui.panel = 'day';
+  const dt = fromISO(d);
+  if (ui.view === 'month' && dt.getMonth() !== ui.cursor.getMonth()) ui.cursor = new Date(dt.getFullYear(), dt.getMonth(), 1);
+  if (ui.view === 'week') ui.cursor = dt;
+  renderAll();
+}
+
+/* ================= Actions ================= */
+const A = {
+  prev: () => nav(-1), next: () => nav(1), today: goToday,
+  view: el => setView(el.dataset.view),
+  new: el => openEditor({ date: el.dataset.date ?? (ui.panel === 'todo' && ['nodate', 'open'].includes(ui.todo) ? '' : ui.selected) }),
+  edit: el => openEditor({ id: el.dataset.id }),
+  toggle: el => toggleDone(el.dataset.id, el.dataset.date),
+  addAt: (el, ev) => { if (ev.target.closest('.blk')) return; openEditor({ date: el.dataset.date, tab: el.dataset.tab || null }); },
+  panel: el => { ui.panel = el.dataset.panel; renderPanel(); },
+  todo: el => { ui.todo = el.dataset.f; renderPanel(); },
+  quickTab: el => { ui.quickTab = ui.quickTab === el.dataset.tab ? null : el.dataset.tab; renderPanel(); $('[data-quick="day"] input')?.focus(); },
+  pickDay: el => { ui.selected = el.dataset.date; ui.panel = 'day'; renderAll(); },
+  openDay: el => { ui.selected = el.dataset.date; setView('day'); },
+  goMonth: el => { ui.cursor = new Date(ui.cursor.getFullYear(), +el.dataset.m, 1); ui.view = 'month'; $('#view').scrollTop = 0; renderAll(); },
+  highlight: el => { const r = el.getBoundingClientRect(); openHighlight(el.dataset.date, r.left, r.bottom + 8); },
+  closePop: () => closePop(),
+  hlPick: el => applyHighlight(el.dataset.style),
+  hlClear: () => { const days = hlRange(); days.forEach(d => delete state.highlights[d]); closePop(); commit(); toast('Highlight removed'); },
+  hlStyles: () => { closePop(); openSettings('highlights'); },
+  settings: () => openSettings('look'), backgrounds: () => openSettings('photos'),
+  close: () => closeDialog(),
+  toastAct: () => { const f = ui.toastAct; ui.toastAct = null; $('#toast').classList.remove('on'); f && f(); },
+
+  eKind: el => { draft.kind = el.dataset.k; renderEditor(); },
+  eTab: el => { draft.tab = el.dataset.tab || null; renderEditor(); $(`#dlg [data-action="eTab"][data-tab="${el.dataset.tab}"]`)?.focus(); },
+  eCat: el => { draft.cat = el.dataset.cat; renderEditor(); $(`#dlg [data-action="eCat"][data-cat="${el.dataset.cat}"]`)?.focus(); },
+  eNewTab: () => { draft._newTab = !draft._newTab; renderEditor(); $('#dlg [data-nt="name"]')?.focus(); },
+  eAddTab: () => {
+    const name = ($('#dlg [data-nt="name"]')?.value || '').trim(), start = $('#dlg [data-nt="start"]')?.value, end = $('#dlg [data-nt="end"]')?.value;
+    if (!name) { $('#dlg [data-nt="name"]')?.focus(); toast('Name the tab first'); return; }
+    if (!start || !end || end <= start) { toast('The tab needs to end after it starts'); return; }
+    const t = { id: nid(), name, start, end }; state.timeTabs.push(t);
+    draft.tab = t.id; draft._newTab = false; commit(); renderEditor(); toast(`Time tab “${name}” added`);
+  },
+  eDelete: () => deleteEntry(),
+
+  newProject: () => openProject(null),
+  editProject: (el, ev) => { ev.stopPropagation(); openProject(el.dataset.id); },
+  pSeg: el => { pdraft[el.dataset.key] = parseSetting(el.dataset.key, el.dataset.val); renderProject(); },
+  pColor: el => { pdraft.color = el.dataset.c; renderProject(); },
+  pAddTask: () => {
+    const ti = $('#dlg [data-pt="title"]'), title = (ti?.value || '').trim();
+    if (!title) { ti?.focus(); return; }
+    persistProjectDraft();
+    state.entries.push({ ...blankEntry({ date: $('#dlg [data-pt="date"]')?.value || '', project: pdraft.id }), id: nid(), title, created: Date.now(), done: false, doneDates: [] });
+    commit(); renderProject(); $('#dlg [data-pt="title"]')?.focus();
+  },
+  pDelete: () => {
+    if (ui.confirm !== 'project') { ui.confirm = 'project'; renderProject(); return; }
+    const snapP = clone(state.projects), snapE = clone(state.entries);
+    state.projects = state.projects.filter(p => p.id !== pdraft.id);
+    state.entries.forEach(e => { if (e.project === pdraft.id) e.project = ''; });
+    pdraft = null; ui.confirm = null; dlg.close(); dlg.dataset.kind = ''; commit();
+    toast('Project deleted. Its tasks were kept.', { label: 'Undo', fn: () => { state.projects = snapP; state.entries = snapE; commit(); } });
+  },
+
+  sTab: el => { ui.sTab = el.dataset.t; ui.confirm = null; renderSettings(); $('#dlg .dlg-body').scrollTop = 0; },
+  sSeg: el => { state.settings[el.dataset.key] = parseSetting(el.dataset.key, el.dataset.val); if (el.dataset.key === 'bgRotate') bgKey = null; commit(); renderSettings(); },
+  sAdd: el => {
+    const list = el.dataset.list;
+    const item = list === 'timeTabs' ? { id: nid(), name: 'New tab', start: '19:00', end: '21:00' }
+      : { id: nid(), name: list === 'categories' ? 'New category' : 'New highlight', color: PALETTE[state[list].length % PALETTE.length] };
+    state[list].push(item); commit(); renderSettings();
+    const inputs = $$(`#dlg [data-list="${list}"][data-field="name"]`);
+    const target = inputs.find(x => +x.dataset.i === state[list].length - 1) || inputs[inputs.length - 1];
+    target?.focus(); target?.select();
+  },
+  sDel: el => {
+    const list = el.dataset.list, i = +el.dataset.i, item = state[list][i]; if (!item) return;
+    if (list !== 'highlightStyles' && state[list].length <= 1) { toast('Keep at least one'); return; }
+    const snap = clone(state);
+    state[list].splice(i, 1);
+    if (list === 'highlightStyles') for (const d in state.highlights) if (state.highlights[d].style === item.id) delete state.highlights[d];
+    commit(); renderSettings();
+    toast(`“${item.name}” deleted`, { label: 'Undo', fn: () => { state = snap; commit(); if (dlg.dataset.kind === 'settings') renderSettings(); } });
+  },
+  uploadBg: () => $('#fileImg').click(),
+  bgMonth: el => {
+    const b = state.backgrounds[+el.dataset.i]; if (!b) return;
+    const m = +el.dataset.m; b.months = b.months || [];
+    b.months = b.months.includes(m) ? b.months.filter(x => x !== m) : [...b.months, m].sort((a, c) => a - c);
+    bgKey = null; commit(); renderSettings();
+  },
+  bgDel: el => {
+    const i = +el.dataset.i, b = state.backgrounds[i]; if (!b) return;
+    state.backgrounds.splice(i, 1);
+    if (b.asset && Store.assets) Store.assets.delete(b.asset).catch(() => {});
+    if (b.gh && GH && b.ghSha) gh('DELETE', ghPath(b.gh), { message: 'Remove header photo', sha: b.ghSha }).catch(() => {});
+    if (b.gh) { IDB.del('gh:' + b.gh).catch(() => {}); delete urlCache['gh:' + b.gh]; }
+    if (b.local) { IDB.del(b.local).catch(() => {}); if (urlCache[b.local]) URL.revokeObjectURL(urlCache[b.local]); delete urlCache[b.local]; }
+    bgKey = null; commit(); renderSettings(); toast('Photo removed');
+  },
+  export: () => exportData(),
+  ghConnect: () => ghConnect(),
+  ghSyncNow: async () => { if (Store.dirty) { clearTimeout(Store.t); await flush(); } else { await ghPull(); } toast(Store.status === 'gh' ? 'Up to date' : 'Sync didn’t finish. Check the status in the header.'); },
+  ghDisconnect: () => {
+    if (ui.confirm !== 'ghoff') { ui.confirm = 'ghoff'; renderSettings(); return; }
+    try { localStorage.removeItem('mattcal.github'); localStorage.removeItem('mattcal.ghsync'); } catch {}
+    GH = null; Store.mode = 'local'; Store.loaded = false; ui.confirm = null; setSync('local'); renderSettings();
+    toast('This device is no longer syncing');
+  },
+  syncSetup: () => openSettings('data'),
+  import: () => $('#fileJson').click(),
+  reset: () => {
+    if (ui.confirm !== 'reset') { ui.confirm = 'reset'; renderSettings(); return; }
+    const snap = clone(state), keep = state.backgrounds;
+    state = defaults(); state.backgrounds = keep; ui.confirm = null;
+    commit(); renderSettings();
+    toast('Calendar erased', { label: 'Undo', fn: () => { state = snap; commit(); if (dlg.dataset.kind === 'settings') renderSettings(); } });
+  }
+};
+
+/* ================= Events ================= */
+let lp = null, lpFired = false, lpStart = null;
+document.addEventListener('pointerdown', ev => {
+  const c = ev.target.closest('[data-hlt]');
+  if (!c || ev.pointerType === 'mouse') return;
+  lpFired = false; lpStart = [ev.clientX, ev.clientY];
+  clearTimeout(lp);
+  lp = setTimeout(() => { lpFired = true; openHighlight(c.dataset.date, ev.clientX, ev.clientY); if (navigator.vibrate) navigator.vibrate(10); }, 520);
+});
+document.addEventListener('pointermove', ev => { if (lp && lpStart && Math.hypot(ev.clientX - lpStart[0], ev.clientY - lpStart[1]) > 10) { clearTimeout(lp); lp = null; } });
+['pointerup', 'pointercancel', 'scroll'].forEach(t => document.addEventListener(t, () => { clearTimeout(lp); lp = null; }, true));
+document.addEventListener('contextmenu', ev => {
+  const c = ev.target.closest('[data-hlt]');
+  if (!c) return;
+  ev.preventDefault();
+  if (!lpFired) openHighlight(c.dataset.date, ev.clientX, ev.clientY);
+});
+
+document.addEventListener('click', ev => {
+  if (lpFired) { lpFired = false; ev.preventDefault(); ev.stopPropagation(); return; }
+  if (!pop.hidden && !pop.contains(ev.target)) { closePop(); if (!ev.target.closest('[data-action]')) return; }
+  const a = ev.target.closest('[data-action]');
+  if (a && A[a.dataset.action]) {
+    if (a.dataset.action === 'addAt' && ev.target.closest('.blk')) { /* handled by inner */ }
+    else { A[a.dataset.action](a, ev); return; }
+  }
+  const cell = ev.target.closest('[data-cell]');
+  if (cell) selectDate(cell.dataset.date);
+});
+document.addEventListener('dblclick', ev => {
+  const cell = ev.target.closest('[data-cell]');
+  if (cell && !ev.target.closest('.chip,.pb')) openEditor({ date: cell.dataset.date });
+  const yd = ev.target.closest('.yd');
+  if (yd) { ui.selected = yd.dataset.date; setView('day'); }
+});
+document.addEventListener('submit', ev => {
+  ev.preventDefault();
+  const f = ev.target;
+  if (f.dataset.quick) return quickAdd(f);
+  const ae = document.activeElement;
+  if (ae && ae.dataset && ae.dataset.nt) return A.eAddTab();
+  if (ae && ae.dataset && ae.dataset.pt) return A.pAddTask();
+  if (f.id === 'entryForm') return saveEntry();
+  if (f.id === 'projForm') return saveProject(false);
+});
+dlg.addEventListener('input', ev => {
+  const t = ev.target, kind = dlg.dataset.kind;
+  if (kind === 'entry' && t.name && draft) draft[t.name] = t.value;
+  if (kind === 'project' && t.name && pdraft) {
+    pdraft[t.name] = t.name === 'progress' ? +t.value : t.value;
+    if (t.name === 'progress') { const pv = $('#pval'); if (pv) pv.textContent = t.value + '%'; }
+    if (t.name === 'color') $$('#dlg .palette button').forEach(b => b.setAttribute('aria-pressed', 'false'));
+  }
+  if (kind === 'settings') {
+    if (t.dataset.set === 'overlay') { state.settings.overlay = +t.value; applyLook(); scheduleSave(); }
+    if (t.dataset.bgpos != null) {
+      const b = state.backgrounds[+t.dataset.bgpos];
+      if (b) { b.pos = +t.value; const im = $(`#dlg [data-phimg="${t.dataset.bgpos}"]`); if (im) im.style.backgroundPosition = `50% ${b.pos}%`; renderBg(); scheduleSave(); }
+    }
+    if (t.dataset.list && t.dataset.field === 'color') { const it = state[t.dataset.list][+t.dataset.i]; if (it) { it.color = t.value; renderAll(); scheduleSave(); } }
+  }
+});
+dlg.addEventListener('change', ev => {
+  const t = ev.target, kind = dlg.dataset.kind;
+  if (kind === 'entry' && draft && ['date', 'repeat'].includes(t.name)) { draft[t.name] = t.value; if (t.name === 'date' && !t.value) { draft.endDate = ''; draft.repeat = 'none'; } renderEditor(); }
+  if (kind === 'project' && pdraft && t.name === 'start') renderProject();
+  if (kind === 'settings') {
+    if (t.dataset.set && t.dataset.set !== 'overlay') { state.settings[t.dataset.set] = t.value; commit(); }
+    if (t.dataset.list && t.dataset.field !== 'color') {
+      const list = t.dataset.list, it = state[list][+t.dataset.i]; if (!it) return;
+      let v = t.value;
+      if (t.dataset.field === 'name') { v = v.trim(); if (!v) { t.value = it.name; return; } }
+      it[t.dataset.field] = v;
+      if (list === 'timeTabs' && it.end && it.start && it.end <= it.start) toast('That tab ends before it starts. Check the times.');
+      commit();
+      if (list === 'timeTabs' && t.dataset.field !== 'name') renderSettings();
+    }
+  }
+});
+$('#fileImg').addEventListener('change', ev => { const files = [...ev.target.files]; ev.target.value = ''; uploadImages(files); });
+$('#fileJson').addEventListener('change', async ev => {
+  const f = ev.target.files[0]; ev.target.value = ''; if (!f) return;
+  const snap = clone(state);
+  try {
+    const msg = importData(JSON.parse(await f.text()));
+    bgKey = null; commit(); if (dlg.dataset.kind === 'settings') renderSettings();
+    toast(msg, { label: 'Undo', fn: () => { state = snap; bgKey = null; commit(); if (dlg.dataset.kind === 'settings') renderSettings(); } });
+  } catch { state = snap; toast('That file isn’t a calendar backup. Choose a .json export.'); }
+});
+pop.addEventListener('keydown', ev => {
+  if (ev.key === 'Escape') { closePop(); return; }
+  if (ev.key === 'Enter' && ev.target.id === 'hlNote') {
+    ev.preventDefault();
+    const cur = state.highlights[ui.hlDate];
+    applyHighlight(cur ? cur.style : state.highlightStyles[0]?.id);
+  }
+});
+document.addEventListener('keydown', ev => {
+  if (dlg.open) return;
+  if (ev.key === 'Escape') { closePop(); return; }
+  const tag = (ev.target.tagName || '').toLowerCase();
+  if (['input', 'textarea', 'select'].includes(tag) || ev.metaKey || ev.ctrlKey || ev.altKey) return;
+  const cell = ev.target.closest && ev.target.closest('[data-cell]');
+  if (cell && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); selectDate(cell.dataset.date); return; }
+  if (!pop.hidden) return;
+  const k = ev.key;
+  if (k === 'ArrowLeft') nav(-1);
+  else if (k === 'ArrowRight') nav(1);
+  else if (k === 't' || k === 'T') goToday();
+  else if (k === 'n' || k === 'N') { ev.preventDefault(); A.new({ dataset: {} }); }
+  else if (k === '1') setView('year'); else if (k === '2') setView('month'); else if (k === '3') setView('week'); else if (k === '4') setView('day');
+  else if (k === '/') { ev.preventDefault(); ui.panel === 'projects' && (ui.panel = 'day', renderPanel()); $('.quick input')?.focus(); }
+});
+let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (ui.view === 'month') renderView(); closePop(); }, 150); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => renderAll());
+
+/* ================= Boot ================= */
+const heroEl = $('.hero');
+const syncStage = () => app.style.setProperty('--stage-h', heroEl.offsetHeight + 'px');
+if ('ResizeObserver' in window) new ResizeObserver(syncStage).observe(heroEl); else addEventListener('resize', syncStage);
+syncStage();
+if (ui.view === 'month') ui.cursor = new Date(ui.cursor.getFullYear(), ui.cursor.getMonth(), 1);
+setBase();
+renderAll();
+setInterval(() => tick(false), 1000);
+loadLocalImages();
+initCloud().catch(err => { console.warn(err); setSync('local'); });
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+</script>
+</body>
+</html>
